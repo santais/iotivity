@@ -20,10 +20,10 @@
 #include "caipadapterutils_eth.h"
 
 #include <Arduino.h>
-#include <Ethernet.h>
+#include <Ethernet2.h>
 #include <socket.h>
-#include <w5100.h>
-#include <EthernetUdp.h>
+#include <w5500.h>
+#include <EthernetUdp2.h>
 #include <IPAddress.h>
 
 #include "logger.h"
@@ -41,7 +41,7 @@ CAResult_t CAArduinoGetAvailableSocket(int *sockID)
     *sockID = 0;
     for (int i = 1; i < MAX_SOCK_NUM; i++)
     {
-        state = W5100.readSnSR(i);
+        state = w5500.readSnSR(i);
         if (state == SnSR::CLOSED || state == SnSR::FIN_WAIT)
         {
             *sockID = i;
@@ -113,9 +113,9 @@ CAResult_t CAArduinoInitMulticastUdpSocket(const char *mcastAddress,
     mcastMacAddr[3] = ipAddr[1] & 0x7F;
     mcastMacAddr[4] = ipAddr[2];
     mcastMacAddr[5] = ipAddr[3];
-    W5100.writeSnDIPR(*socketID, (uint8_t *)ipAddr);
-    W5100.writeSnDHAR(*socketID, mcastMacAddr);
-    W5100.writeSnDPORT(*socketID, mport);
+    w5500.writeSnDIPR(*socketID, (uint8_t *)ipAddr);
+    w5500.writeSnDHAR(*socketID, mcastMacAddr);
+    w5500.writeSnDPORT(*socketID, mport);
 
     //Create a datagram socket on which to recv/send.
     if (!socket(*socketID, SnMR::UDP, lport, SnMR::MULTI))

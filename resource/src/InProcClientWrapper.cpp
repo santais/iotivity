@@ -149,10 +149,18 @@ namespace OC
             return OC_STACK_KEEP_TRANSACTION;
         }
 
-        if(!clientResponse->payload || clientResponse->payload->type != PAYLOAD_TYPE_DISCOVERY)
+        if(!clientResponse->payload)
         {
-            oclog() << "listenCallback(): clientResponse payload was null or the wrong type"
+            oclog() << "listenCallback(): clientResponse payload was null"
                 << std::flush;
+            return OC_STACK_KEEP_TRANSACTION;
+        }
+
+        if(clientResponse->payload->type != PAYLOAD_TYPE_DISCOVERY)
+        {
+            oclog() << "listenCallback(): clientResponse payload was the wrong type"
+            << std::flush;
+            oclog() << "Type is: %i" << clientResponse->payload->type << std::flush;
             return OC_STACK_KEEP_TRANSACTION;
         }
 

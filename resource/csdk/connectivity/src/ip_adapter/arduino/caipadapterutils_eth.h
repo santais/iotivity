@@ -27,10 +27,10 @@
 #define CA_ETHERNET_ADAPTER_UTILS_
 
 #include <Arduino.h>
-#include <Ethernet.h>
+#include <Ethernet2.h>
 #include <socket.h>
-#include <w5100.h>
-#include <EthernetUdp.h>
+#include <w5500.h>
+#include <EthernetUdp2.h>
 #include <IPAddress.h>
 
 #include "logger.h"

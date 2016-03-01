@@ -24,6 +24,7 @@
 #include "rdpayload.h"
 #include "payload_logging.h"
 
+
 #define TAG  PCF("RDServer")
 
 // This is temporary hardcoded value for bias factor.
@@ -51,6 +52,8 @@ static OCEntityHandlerResult handleGetRequest(const OCEntityHandlerRequest *ehRe
         return OC_EH_ERROR;
     }
 
+    printf("Received OC_REST_GET from client with request: %s  \n", ehRequest->query);
+
     OCEntityHandlerResult ehResult = OC_EH_OK;
     OIC_LOG_V(DEBUG, TAG, "Received OC_REST_GET from client with query: %s.", ehRequest->query);
 
@@ -68,6 +71,7 @@ static OCEntityHandlerResult handleGetRequest(const OCEntityHandlerRequest *ehRe
     }
 
     OIC_LOG_PAYLOAD(DEBUG, (OCPayload *) rdPayload);
+    printf("Payload is: %s \n", (OCPayload *) rdPayload);
 
     if (sendResponse(ehRequest, rdPayload) != OC_STACK_OK)
     {
@@ -92,6 +96,7 @@ static OCEntityHandlerResult handlePublishRequest(const OCEntityHandlerRequest *
         return OC_EH_ERROR;
     }
 
+    printf("Received OC_REST_PUT from client with query %s. \n", ehRequest->query);
     OIC_LOG_V(DEBUG, TAG, "Received OC_REST_PUT from client with query: %s.", ehRequest->query);
 
     OCRDPayload *payload = (OCRDPayload *)ehRequest->payload;
@@ -126,6 +131,8 @@ static OCEntityHandlerResult rdEntityHandler(OCEntityHandlerFlag flag,
         OCEntityHandlerRequest *ehRequest, __attribute__((unused)) void *callbackParameter)
 {
     OCEntityHandlerResult ehRet = OC_EH_ERROR;
+
+    printf("Inside rdEntityHandler");
 
     if (!ehRequest)
     {

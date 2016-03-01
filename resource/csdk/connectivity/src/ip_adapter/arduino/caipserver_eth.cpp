@@ -21,10 +21,10 @@
 #include "caipinterface.h"
 
 #include <Arduino.h>
-#include <Ethernet.h>
+#include <Ethernet2.h>
 #include <socket.h>
-#include <w5100.h>
-#include <EthernetUdp.h>
+#include <w5500.h>
+#include <EthernetUdp2.h>
 #include <IPAddress.h>
 
 #include "logger.h"
@@ -94,7 +94,7 @@ CAResult_t CAIPStartUnicastServer(const char *localAddress, uint16_t *port,
 
     uint8_t rawIPAddr[4];
     char address[16];
-    W5100.getIPAddress(rawIPAddr);
+    w5500.getIPAddress(rawIPAddr);
     sprintf(address, "%d.%d.%d.%d", rawIPAddr[0], rawIPAddr[1], rawIPAddr[2], rawIPAddr[3]);
     OIC_LOG_V(DEBUG, TAG, "address:%s", address);
     int serverFD = 1;
@@ -263,7 +263,7 @@ void CAArduinoCheckData()
  */
 CAResult_t CAArduinoRecvData(int32_t sockFd)
 {
-    /**Bug : When there are multiple UDP packets in Wiznet buffer, W5100.getRXReceivedSize
+    /**Bug : When there are multiple UDP packets in Wiznet buffer, w5500.getRXReceivedSize
      * will not return correct length of the first packet.
      * Fix : Use the patch provided for arduino/libraries/Ethernet/utility/socket.cpp
      */
@@ -273,7 +273,7 @@ CAResult_t CAArduinoRecvData(int32_t sockFd)
     char addr[IPNAMESIZE] = {0};
     uint16_t senderPort = 0;
 
-    uint16_t recvLen = W5100.getRXReceivedSize(sockFd);
+    uint16_t recvLen = w5500.getRXReceivedSize(sockFd);
     if (recvLen == 0)
     {
         // No data available on socket

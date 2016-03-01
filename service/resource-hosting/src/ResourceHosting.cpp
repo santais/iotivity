@@ -23,6 +23,9 @@
 #include "RCSDiscoveryManager.h"
 #include "RCSAddress.h"
 
+
+// MP
+#include <iostream>
 namespace OIC
 {
     namespace Service
@@ -81,6 +84,7 @@ namespace OIC
 
         void ResourceHosting::discoveryHandler(RemoteObjectPtr remoteResource)
         {
+            std::cout << "ResourceHosting: Discovered device with uri: " << remoteResource->getUri() << std::endl;
             auto discoverdUri = remoteResource->getUri();
             if (discoverdUri.compare(
                     discoverdUri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) != 0)

@@ -18,8 +18,6 @@
 // include directives
 
 // Do not remove the include below
-#include "Arduino.h"
-
 #ifdef ARDUINO
 #define TAG "ArduinoServer"
 #else
@@ -34,12 +32,13 @@
 #include <WiFiUdp.h>
 #else
 // Arduino Ethernet Shield
-#include <Ethernet.h>
+#include <Ethernet2.h>
 #include <EthernetServer.h>
 #include <EthernetClient.h>
 #include <Dhcp.h>
 #include <Dns.h>
-#include <EthernetUdp.h>
+#include <EthernetUdp2.h>
+#include <Twitter.h>
 #include <util.h>
 #endif
 
@@ -189,7 +188,7 @@ OCBaseResourceT * createResource(char* uri, OCResourceType* type, OCResourceInte
   *
   * @return
   */
-OCBaseResourceT * createResource(char *uri, char* type, char* interface, uint8_t properties,
+OCBaseResourceT * createResource(char *uri, const char* type, const char* interface, uint8_t properties,
                                  OCIOHandler outputHandler);
 
 /**
@@ -209,7 +208,7 @@ void createResource(OCBaseResourceT *resource);
  * @return              OC_STACK_OK if successfully bound
  */
 OCStackResult addType(OCBaseResourceT *resource, OCResourceType *type);
-OCStackResult addType(OCBaseResourceT *resource, char *typeName);
+OCStackResult addType(OCBaseResourceT *resource, const char *typeName);
 
 /**
  * @brief addInterface Adds and bind a interface to a resource
@@ -220,7 +219,7 @@ OCStackResult addType(OCBaseResourceT *resource, char *typeName);
  * @return              OC_STACK_OK if successfully bound
  */
 OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *interface);
-OCStackResult addInterface(OCBaseResourceT *resource, char* interfaceName);
+OCStackResult addInterface(OCBaseResourceT *resource, const char* interfaceName);
 
 /**
  * @brief addAttribute  Adds an attribute to the resource

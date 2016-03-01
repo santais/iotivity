@@ -34,6 +34,8 @@ void foundResource(std::shared_ptr< OC::OCResource > resource)
                 std::cout << "Found Resource at @ URI: " << resource->uri() << "\tHost Address: " <<
                           resource->host() << std::endl;
             }
+
+            std::cout << "Resource uri is: " << resource->uri() << std::endl;
         }
         else
         {
@@ -64,8 +66,10 @@ int main()
             if (sendRequest)
             {
                 sendRequest = false;
-                std::cout << "Finding Resource light" << std::endl;
-                OC::OCPlatform::findResource("",  "/oic/res?rt=core.light", CT_DEFAULT, &foundResource);
+                std::ostringstream ss;
+                ss << OC_RSRVD_RD_URI << "?rt=oic.wk.rd";
+                std::cout << "Finding Resource light" << std::endl; //"/oic/res?rt=core.light"
+                OC::OCPlatform::findResource("", ss.str(), CT_DEFAULT, &foundResource);
             }
         }
         catch (OC::OCException &ex)

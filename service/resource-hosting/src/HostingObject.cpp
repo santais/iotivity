@@ -23,6 +23,9 @@
 #include "RCSSeparateResponse.h"
 #include "RequestObject.h"
 
+// MP
+#include <iostream>
+
 namespace OIC
 {
     namespace Service
@@ -177,6 +180,8 @@ namespace OIC
                 retResource->setSetRequestHandler(
                         std::bind(&HostingObject::setRequestHandler, this,
                                 std::placeholders::_1, std::placeholders::_2));
+
+                std::cout << "Created mirrored resource with uri " << uri << std::endl;
                 return retResource;
             } catch (...)
             {

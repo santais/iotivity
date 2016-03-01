@@ -198,7 +198,7 @@ typedef enum {
 #define OIC_LOG_CONFIG(ctx)
 #define OIC_LOG_SHUTDOWN()
 #define OIC_LOG(level, tag, logStr) OCLog((level), PCF(tag), __LINE__, PCF(logStr))
-#define OIC_LOG_V(level, tag, ...)
+//#define OIC_LOG_V(level, tag, ...)
 
 #else
 

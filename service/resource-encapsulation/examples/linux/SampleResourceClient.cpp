@@ -461,13 +461,16 @@ void discoverResource()
         printDiscoveryInProgress();
     };
 
-    auto resourceType = selectResourceType();
-    auto address = inputAddress();
+    //auto resourceType = selectResourceType();
+    //auto address = inputAddress();
 
     printDiscoveryInProgress();
 
-    auto discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByType(address,
-            resourceType, onResourceDiscovered);
+    /*auto discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByType(address,
+            resourceType, onResourceDiscovered);*/
+
+    auto discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(RCSAddress::multicast(), onResourceDiscovered);
+
 
     while(processUserInput() != 1);
 

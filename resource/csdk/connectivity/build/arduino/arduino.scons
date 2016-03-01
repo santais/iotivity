@@ -14,7 +14,8 @@ Help(vars.GenerateHelpText(env))
 
 env.ImportLib('SPI')
 if 'ETH' in env.get('SHIELD'):
-	env.ImportLib('Ethernet')
+	#env.ImportLib('Ethernet')
+	env.ImportLib('Ethernet2')
 if 'WIFI' in env.get('SHIELD'):
 	env.ImportLib('WiFi')
 if 'RBL_NRF8001' in env.get('SHIELD'):

@@ -32,7 +32,7 @@
 #ifdef ARDUINOWIFI
 #include "WiFi.h"
 #elif defined ARDUINOETH
-#include "Ethernet.h"
+#include "Ethernet2.h"
 #endif
 
 #include "oic_malloc.h"
