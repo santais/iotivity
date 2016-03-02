@@ -221,6 +221,12 @@ namespace OIC { namespace Service { namespace RichServer
           */
          void configurePlatform();
 
+         /**
+          * @brief foundResourceCBRD
+          * @param resource
+          */
+         static void foundResourceCBRD(std::shared_ptr< OC::OCResource > resource);
+
         /**
           * @brief Function callback for found resources
           *

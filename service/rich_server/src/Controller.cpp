@@ -50,13 +50,26 @@ namespace OIC { namespace Service { namespace RichServer
 
 
         // Start the Resource Host
-        if (Controller::startResourceHost() != OC_STACK_OK)
+       /* if (Controller::startResourceHost() != OC_STACK_OK)
         {
             std::cerr << "Unable to start Resource Host. " << std::endl;
-        }
+        }*/
+
+        // DEBUG. Discover RD Light and Button
+        std::ostringstream ss;
+        ss << OC_RSRVD_WELL_KNOWN_URI;// << "?rt=oic.r.light";
+        OC::OCPlatform::findResource("", ss.str(), CT_DEFAULT, &this->foundResourceCBRD);
+
+        /**std::ostringstream ss1;
+        ss1 << OC_RSRVD_WELL_KNOWN_URI << "?rt=oic.r.button";
+        OC::OCPlatform::findResource("", ss1.str(), CT_DEFAULT, &this->foundResourceCBRD);
+
+        std::ostringstream ss2;
+        ss2 << OC_RSRVD_WELL_KNOWN_URI << "?rt=oic.r.thermostat";
+        OC::OCPlatform::findResource("", ss2.str(), CT_DEFAULT, &this->foundResourceCBRD);*/
 
         // Start the discovery module
-        m_discoveryTask = Controller::discoverResource(m_discoverCallback);
+       // m_discoveryTask = Controller::discoverResource(m_discoverCallback);
 
     }
     /**
@@ -82,7 +95,7 @@ namespace OIC { namespace Service { namespace RichServer
     {
         PlatformConfig config
         {
-            OC::ServiceType::InProc, ModeType::Both, "0.0.0.0", 0, OC::QualityOfService::HighQos
+            OC::ServiceType::InProc, ModeType::Both, "0.0.0.0", 0, OC::QualityOfService::NaQos
         };
         OCPlatform::Configure(config);
     }
@@ -120,6 +133,27 @@ namespace OIC { namespace Service { namespace RichServer
                                                     std::placeholders::_2));
         }
     }
+
+    /**
+     * @brief foundResourceCBRD
+     * @param resource
+     */
+    void Controller::foundResourceCBRD(std::shared_ptr< OC::OCResource > resource)
+    {
+        try
+        {
+            std::cout << "inside foundResourceCBRD" << std::endl;
+            if(resource)
+            {
+                std::cout << "Found RD resource with uri: " << resource->uri() << std::endl;
+            }
+        }
+        catch (std::exception &ex)
+        {
+            std::cout << "Exception :" << ex.what() << " in foundResource" << std::endl;
+        }
+    }
+
 
      /**
        * @brief Function callback for found resources

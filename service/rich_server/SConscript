@@ -47,6 +47,9 @@ rich_server_env.AppendUnique(CPPPATH = ['../resource-encapsulation/include'])
 rich_server_env.AppendUnique(CPPPATH = ['../resource-encapsulation/src/common/primitiveResource/include'])
 rich_server_env.AppendUnique(CPPPATH = ['../resource-encapsulation/src/common/expiryTimer/include'])
 rich_server_env.AppendUnique(CPPPATH = ['../resource-hosting/src'])
+rich_server_env.AppendUnique(CPPPATH = ['../../resource/include'])
+rich_server_env.AppendUnique(CPPPATH = ['../../resource/csdk/stack/include'])
+
 
 rich_server_env.AppendUnique(LIBS = [
     'resource_hosting',

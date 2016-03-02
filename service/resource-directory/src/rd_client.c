@@ -168,7 +168,7 @@ OCStackResult OCRDDiscover(OCRDBiasFactorCB cbBiasFactor)
     cbData.context = (void *)(cbContext);
     cbData.cd = NULL;
 
-    return sendRequest(OC_REST_DISCOVER, queryUri, NULL, NULL, cbData);
+    return sendRequest(OC_REST_GET, queryUri, NULL, NULL, cbData);
 }
 
 static OCStackResult createStringLL(uint8_t numElements, OCResourceHandle handle,
@@ -275,7 +275,9 @@ OCStackResult OCRDPublish(char *addr, uint16_t port, int numArg, ... )
                 }
             }
 
-            if (OC_STACK_OK == OCGetNumberOfResourceTypes(handle, &numElement))
+	    // MP
+            // Changed OCgetNumberOfResourceTypes to OCGetNumberOfResourceInterfaces
+            if (OC_STACK_OK == OCGetNumberOfResourceInterfaces(handle, &numElement))
             {
                 OCStackResult res = createStringLL(numElement, handle, OCGetResourceInterfaceName, &itf);
                 if (res != OC_STACK_OK || !itf)
