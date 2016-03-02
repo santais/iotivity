@@ -29,24 +29,100 @@ using namespace OC;
 
 OCResourceHandle g_curResource_t = NULL;
 OCResourceHandle g_curResource_l = NULL;
+OCResourceHandle g_curResource_b = NULL;
 char rdAddress[MAX_ADDR_STR_SIZE];
 uint16_t rdPort;
+
+static bool initialized = false;
+
+OCEntityHandlerResult entityHandlerCb(std::shared_ptr<OCResourceRequest> request)
+{
+    std::cout << "Inside eneityHandlerCb" << std::endl;
+
+    OCEntityHandlerResult ehResult = OC_EH_ERROR;
+
+    if(request)
+    {
+        std::cout << "Request for uri: " << request->getResourceUri() << std::endl;
+        std::string requestType = request->getRequestType();
+        int requestFlag = request->getRequestHandlerFlag();
+
+        if(requestFlag & RequestHandlerFlag::RequestFlag)
+        {
+            std::cout << "\t\trequestFlag : Request\n";
+            auto pResponse = std::make_shared<OC::OCResourceResponse>();
+            pResponse->setRequestHandle(request->getRequestHandle());
+            pResponse->setResourceHandle(request->getResourceHandle());
+
+            // Check for query params (if any)
+            QueryParamsMap queries = request->getQueryParameters();
+
+            if (!queries.empty())
+            {
+                std::cout << "\nQuery processing upto entityHandler" << std::endl;
+            }
+            for (auto it : queries)
+            {
+                std::cout << "Query key: " << it.first << " value : " << it.second
+                        << std:: endl;
+            }
+
+            OCRepresentation rep;
+            rep.setValue("state", 1);
+            rep.setValue("power", 100);
+            rep.setValue("name", "Some value");
+
+
+            // If the request type is GET
+            if(requestType == "GET")
+            {
+                /*if(!initialized)
+                {
+                    OCStackResult res = OCPlatform::bindTypeToResource(request->getResourceHandle(),
+                                                        "oic.r.light.dimming");
+
+                    if(res != OC_STACK_OK)
+                    {
+                        std::cout << "Error binding type" << std::endl;
+                    }
+                }*/
+
+                std::cout << "\t\t\trequestType : GET\n";
+                pResponse->setErrorCode(200);
+                pResponse->setResponseResult(OC_EH_OK);
+                pResponse->setResourceRepresentation(rep);
+                if(OC_STACK_OK == OCPlatform::sendResponse(pResponse))
+                {
+                    ehResult = OC_EH_OK;
+                }
+
+            }
+        }
+    }
+    return ehResult;
+}
 
 void registerLocalResources()
 {
     std::string resourceURI_thermostat = "/a/thermostat";
-    std::string resourceTypeName_thermostat = "core.thermostat";
+    std::string resourceTypeName_thermostat = "oic.r.thermostat";
     std::string resourceURI_light = "/a/light";
     std::string resourceTypeName_light = "core.light";
+    std::string resourceURI_button = "/a/button";
+    std::string resourceTypeName_button = "oic.r.button";
     std::string resourceInterface = DEFAULT_INTERFACE;
     uint8_t resourceProperty = OC_DISCOVERABLE;
+
+    EntityHandler cb = std::bind(&entityHandlerCb, std::placeholders::_1);
 
     OCStackResult result = OCPlatform::registerResource(g_curResource_t,
                            resourceURI_thermostat,
                            resourceTypeName_thermostat,
                            resourceInterface,
-                           NULL,
+                           cb,
                            resourceProperty);
+
+    //OCPlatform::bindTypeToResource(g_curResource_t, OC_RSRVD_RESOURCE_TYPE_RD);
 
     if (OC_STACK_OK != result)
     {
@@ -58,6 +134,19 @@ void registerLocalResources()
                                           resourceURI_light,
                                           resourceTypeName_light,
                                           resourceInterface,
+                                          cb,
+                                          resourceProperty);
+
+    if (OC_STACK_OK != result)
+    {
+        throw std::runtime_error(
+            std::string("Device Resource failed to start") + std::to_string(result));
+    }
+
+    /*result = OCPlatform::registerResource(g_curResource_b,
+                                          resourceURI_button,
+                                          resourceTypeName_button,
+                                          resourceInterface,
                                           NULL,
                                           resourceProperty);
 
@@ -66,6 +155,14 @@ void registerLocalResources()
         throw std::runtime_error(
             std::string("Device Resource failed to start") + std::to_string(result));
     }
+
+    OCPlatform::bindTypeToResource(g_curResource_b, OC_RSRVD_RESOURCE_TYPE_RD);
+
+    if (OC_STACK_OK != result)
+    {
+        throw std::runtime_error(
+            std::string("Device Resource failed to start") + std::to_string(result));
+    }*/
 }
 
 void printHelp()
@@ -107,12 +204,15 @@ int main()
         std::cout << "Caught OCException [Code: " << e.what() << std::endl;
     }
 
+    std::cout << "Entering while loop" << std::endl;
+
     while (1)
     {
         sleep(2);
 
-        if (g_curResource_t == NULL || g_curResource_l == NULL)
+        if (g_curResource_t == NULL || g_curResource_l == NULL)// || g_curResource_b == NULL)
         {
+            std::cout << "Either of the handles are NULL" << std::endl;
             continue;
         }
         printHelp();
