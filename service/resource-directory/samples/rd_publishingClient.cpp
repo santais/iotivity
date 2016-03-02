@@ -18,6 +18,11 @@
 //
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <iostream>
+#include <functional>
+
+#include <pthread.h>
+#include <mutex>
+#include <condition_variable>
 
 #include "OCPlatform.h"
 #include "OCApi.h"
@@ -183,6 +188,7 @@ int biasFactorCB(char addr[MAX_ADDR_STR_SIZE], uint16_t port)
     OICStrcpy(rdAddress, MAX_ADDR_STR_SIZE, addr);
     rdPort = port;
     std::cout << "RD Address is : " <<  addr << ":" << port << std::endl;
+    initialized = true;
     return 0;
 }
 
@@ -206,16 +212,15 @@ int main()
 
     std::cout << "Entering while loop" << std::endl;
 
-    while (1)
-    {
+    //while (1)
+    //{
         sleep(2);
 
         if (g_curResource_t == NULL || g_curResource_l == NULL)// || g_curResource_b == NULL)
         {
             std::cout << "Either of the handles are NULL" << std::endl;
-            continue;
         }
-        printHelp();
+        /*printHelp();
 
         in = 0;
         std::cin >> in;
@@ -226,9 +231,32 @@ int main()
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             std::cout << "Invalid input type, please try again" << std::endl;
             continue;
+        }*/
+        try
+        {
+            std::cout << "Finding RD !" << std::endl;
+            while(!initialized)
+            {
+                OCRDDiscover(biasFactorCB);
+                sleep(3);
+            }
+
+            std::cout << "Found RD server" << std::endl;
+            OCRDPublish(rdAddress, rdPort, 2, g_curResource_t, g_curResource_l);
+
+
+            std::mutex blocker;
+            std::condition_variable cv;
+            std::unique_lock<std::mutex> lock(blocker);
+            std::cout <<"Waiting" << std::endl;
+            cv.wait(lock, []{return false;});
+        }
+        catch(OCException &e)
+        {
+            std::cout << "OCException in main: " << e.what() << std::endl;
         }
 
-        try
+        /*try
         {
             switch ((int)in)
             {
@@ -249,6 +277,6 @@ int main()
         {
             std::cout << "Caught OCException [Code: " << e.code() << " Reason: " << e.reason() << std::endl;
         }
-    }
-    return 0;
+   // }
+    //return 0;*/
 }
