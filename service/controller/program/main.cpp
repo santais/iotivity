@@ -4,7 +4,6 @@
 
 using namespace OIC;
 using namespace Service;
-using namespace RichServer;
 
 Controller::Ptr controller (new Controller());
 

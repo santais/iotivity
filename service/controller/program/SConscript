@@ -27,25 +27,32 @@ Import('env')
 lib_env = env.Clone()
 SConscript(env.get('SRC_DIR') + '/service/third_party_libs.scons', 'lib_env')
 
-rich_server_program_env = lib_env.Clone()
+controller_program_env = lib_env.Clone()
 
 ######################################################################
 # Build flags
 ######################################################################
-rich_server_program_env.AppendUnique(CPPPATH = ['../../../extlibs/cjson'])
-rich_server_program_env.AppendUnique(CPPPATH = ['../../../resource/csdk/connectivity/api'])
-rich_server_program_env.AppendUnique(CXXFLAGS = ['-O2', '-g', '-Wall', '-fmessage-length=0', '-std=c++0x'])
-rich_server_program_env.AppendUnique(CPPPATH = ['../include'])
-rich_server_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/include'])
-rich_server_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/src/common/primitiveResource/include'])
-rich_server_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/src/common/expiryTimer/include'])
-rich_server_program_env.AppendUnique(CPPPATH = ['../../resource-hosting/src'])
+controller_program_env.AppendUnique(CPPPATH = ['../../../extlibs/cjson'])
+controller_program_env.AppendUnique(CPPPATH = ['../../../resource/csdk/connectivity/api'])
+controller_program_env.AppendUnique(CXXFLAGS = ['-O2', '-g', '-Wall', '-fmessage-length=0', '-std=c++0x'])
+controller_program_env.AppendUnique(CPPPATH = ['../include'])
+controller_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/include'])
+controller_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/src/common/primitiveResource/include'])
+controller_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/src/common/expiryTimer/include'])
+controller_program_env.AppendUnique(CPPPATH = ['../../resource-hosting/src'])
 
-rich_server_program_env.AppendUnique(LIBS = [
+# RD
+controller_program_env.AppendUnique(CPPPATH = ['../../resource-directory/include'])
+
+# Resource Types
+controller_program_env.AppendUnique(CPPPATH = ['../../rich-server/include'])
+
+controller_program_env.AppendUnique(LIBS = [
     'resource_hosting',
     'rcs_client',
     'rcs_server',
-    'rich_server',
+    'controller',
+    'resource_directory',	
     'rcs_common',
     'oc',
     'octbstack',
@@ -54,19 +61,19 @@ rich_server_program_env.AppendUnique(LIBS = [
     'coap',
     'pthread'
     ])
-rich_server_program_env.AppendUnique(CPPPATH = ['../include'])
+controller_program_env.AppendUnique(CPPPATH = ['../include'])
 
 if env.get('SECURED') == '1':
-    rich_server_program_env.AppendUnique(LIBS = ['tinydtls'])
+    controller_program_env.AppendUnique(LIBS = ['tinydtls'])
 
-if 'rt' in rich_server_program_env.get('LIBS'):
-    rich_server_program_env.Append(LIBS = ['rt'])
+if 'rt' in controller_program_env.get('LIBS'):
+    controller_program_env.Append(LIBS = ['rt'])
 
 ######################################################################
 # ##### Client #####
 ######################################################################
 
-richServerMain = rich_server_program_env.Program('rich_server_main', 'main.cpp')
+ControllerMain = controller_program_env.Program('controller_main', 'main.cpp')
 
-rich_server_program_env.InstallTarget(richServerMain, 'rich_server_main')
+controller_program_env.InstallTarget(ControllerMain, 'controller_main')
 

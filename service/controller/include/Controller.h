@@ -33,107 +33,18 @@
 
 #include "ResourceTypes.h"
 
-#include "PrimitiveResource.h"
-#include "RCSResourceObject.h"
-#include "RCSRemoteResourceObject.h"
-#include "RCSDiscoveryManager.h"
-#include "HostingObject.h"
-#include "ResourceHosting.h"
 #include "OCPlatform.h"
 #include "OCApi.h"
 #include "ExpiryTimer.h"
-
- /*
-	The rich server is to automatically discover new devices in the network.
-
-	It has an implemented Resource Host to control constrained devices. The RH 
-	automatically disocvers new hosting devices so this is not a requirement.
-
-	When a resource is discovered by the RH, the hosted resource should no longer
-	be discoverable.
-
-	It has to automatically onboard and provision for new devices wishing
-	to join the network.
-
-	Create a file of genuine resource types.
-
-    Common independent resources are discovered through resource type "oic.if.baseline".
-    This type is not present when discovering hosted resources.
-
-    The Discovery process is to be 
-
-		
- */
+#include "rd_server.h"
 
 
-/* Variables included in the class
-	std::map of the registered resources (avoid duplication and lookup).
-
-	RCSResourceObject::Ptr m_serverResource;
-
-	// Object controlling and managing all resources discovered by the Resource Host. 
-	// TODO: Add getResources to the class
-	ResourceHosting resourceHost
-
-	// Map in HostingObject ẃhich has all the objects.
-	std::unordered_map<HostingObjectKey, HostingObject::Ptr> m_hostingObjects;
-
-	// List of stored resources
-	// key: Uri + Host, Value: RCSResourceObject::Ptr
-	std::unordered_map<key, value> m_resourceList;
-
-	// Discovery Manager.
-	RCSDiscoveryManager m_manager;
-
-
-
-
-*/
-
-/* Functions to be implemented 
-	setRequestHandler
-
-	// Copies a discovered remote resource to a resource object
-	RCSResourceObject::Ptr copyRemoteRcToObjectRc(RCSRemoteResourceObject::Ptr remoteResourceObject)
-
-	void setPlatformInfo();	// OCPlatform::registerPlatformInfo
-
-	void setDeviceInfo();	// OCPlatform::registerDeviceInfo	
-
-	void discoverResourceHost();
-
-	void discoverResources();
-
-	// Start the resource host
-	OCStackResult startResourceHost;
-
-	// Stop the resource host
-	OCStackResult stopResourceHost;
-
-*/
-
-/* TODO LIST:
- *
- * 2. Make new header file with list of available resource types.
- *  - Resource types are declared by oic.r.<resource type>
- *      - i.e. oic.r.brightness. oic.r.light
- * 5. Add DEBUG function to get the list of available resources.
- * 6. Write the test program to select desired resource and its attribute.
- */
-
-/* TODO:
- * MOVE INTO A HEADER FILES
- */
-
-namespace OIC { namespace Service { namespace RichServer
+namespace OIC { namespace Service
 {
 
 	using namespace OC;
 	using namespace OIC;
 	using namespace OIC::Service;
-
-    constexpr unsigned int CONTROLLER_MONITORING_SECOND = 5l;
-    constexpr unsigned int CONTROLLER_MONITORING_MILLISECOND = CONTROLLER_MONITORING_SECOND * 1000;
 
     const std::string HOSTING_TAG = "/hosting";
     const auto HOSTING_TAG_SIZE = HOSTING_TAG.size();
@@ -146,6 +57,11 @@ namespace OIC { namespace Service { namespace RichServer
     public:
         typedef std::unique_ptr<Controller> Ptr;
         typedef std::unique_ptr<const Controller> ConstPtr;
+
+     /*   typedef std::shared_ptr<OCResource> Ptr;
+        typedef std::shared_ptr<const OCResource> ConstPtr;
+
+        typedef std::shared_ptr<OCResourceRequest> Ptr;*/
 
 	public:
 		/** 
@@ -175,12 +91,12 @@ namespace OIC { namespace Service { namespace RichServer
         /**
           * Starts the Rich Server process
           */
-        void start();
+        OCStackResult start();
 
         /**
          '* Stops the Rich Server process
           */
-        void stop();
+        OCStackResult stop();
 
         /**
           * @brief Prints the data of an resource object
@@ -189,19 +105,13 @@ namespace OIC { namespace Service { namespace RichServer
           *
           * @return OC_NO_RESOURCE if the resource doesn't exist.
           */
-        OCStackResult printResourceData(RCSRemoteResourceObject::Ptr resource);
+        OCStackResult printResourceData(OCResource::Ptr resource);
 
     private:
 		/**
 		  * Map containing all discovered resources. 
 		  */
-        std::unordered_map<ResourceKey, RCSRemoteResourceObject::Ptr> m_resourceList;
-
-		 /**
-		   * DiscoveryTask used to cancel and observe the discovery process.
-		   */
-        RCSDiscoveryManager::DiscoveryTask::Ptr m_discoveryTask;
-        RCSDiscoveryManager::ResourceDiscoveredCallback m_discoverCallback;
+        std::unordered_map<ResourceKey, OCResource::Ptr> m_resourceList;
 
         /**
           * Mutex when writing and reading to/from a ResourceHosting
@@ -209,10 +119,20 @@ namespace OIC { namespace Service { namespace RichServer
         std::mutex m_resourceMutex;
 
         /**
+         * Discovery callback called when a resource is discovered
+         */
+        FindCallback m_discoverCallback;
+
+        /**
           * Timer used for monitoring
           */
-         ExpiryTimer m_monitoringTimer;
-         unsigned int m_monitoringTimerHandler;
+         ExpiryTimer m_discoveryTimer;
+         unsigned int m_discoveryTimerHandler;
+
+         /**
+           * Boolean to indicate if the RD is started already
+           */
+         bool m_RDStarted;
 
 	private:
 
@@ -221,44 +141,28 @@ namespace OIC { namespace Service { namespace RichServer
           */
          void configurePlatform();
 
-         /**
-          * @brief foundResourceCBRD
-          * @param resource
-          */
-         static void foundResourceCBRD(std::shared_ptr< OC::OCResource > resource);
-
         /**
           * @brief Function callback for found resources
           *
           * @param resource     The discovered resource.
           */
-        void foundResourceCallback(std::shared_ptr<RCSRemoteResourceObject> resource);
-
-        /**
-         * @brief createResourceObject  Create a mirrored resource to be inserted into the list
-         *                              of found device
-         *
-         * @param resource              The resource to be mirrored
-         *
-         * @return A pointer to the new mirrored object
-         */
-        auto createResourceObject(const RCSRemoteResourceObject::Ptr &resource) -> Ptr;
+        void foundResourceCallback(OCResource::Ptr resource);
 
 		/**
-		  * Start the Resource Host. Initiates resource discovery
+          * Start the Resource Directory Server. Initiates resource discovery
 		  * and stores the discovered resources.
 		  *
 		  * @return Result of the startup
 		  */
-		OCStackResult startResourceHost();
+        OCStackResult startRD();
 
 		/**
-		  * Stop the Resource Host. Clears all memory used by 
+          * Stop the Resource Directory Server. Clears all memory used by
 		  * the resource host.
 		  *
 		  * @return Result of the shutdown
 		  */
-		OCStackResult stopResourceHost();
+        OCStackResult stopRD();
 
         /**
          * @brief Callback when getting the remote attributes
@@ -266,7 +170,7 @@ namespace OIC { namespace Service { namespace RichServer
          * @param attr          Attributes received from the server
          * @param eCode         Result code of the initiate request
          */
-        void getAttributesCallback(const RCSResourceAttributes& attr, int eCode);
+        //void getAttributesCB(const RCSResourceAttributes& attr, int eCode);
 
 		/**
 		  * Sets the device information
@@ -292,35 +196,6 @@ namespace OIC { namespace Service { namespace RichServer
 		  */
 		void setPlatformInfo();
 
-
-		/**
-          *  @brief Disovery of resources
-		  *
-		  *  @param address 	mutlicast or unicast address using RCSAddress class
-		  *  @param cb 			Callback to which discovered resources are notified
-		  *  @param uri 		Uri to discover. If null, do not include uri in discovery
-          *  @param type        Resource type used as discovery filter
-		  *
-		  *  @return Pointer to the discovery task.
-		  */
-        RCSDiscoveryManager::DiscoveryTask::Ptr discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
-            RCSAddress address = RCSAddress::multicast(), std::string uri = std::string(""),
-            std::string type = std::string(""));
-
-        /**
-          *  @brief Disovery of resources
-          *
-          *  @param address 	mutlicast or unicast address using RCSAddress class
-          *  @param cb 			Callback to which discovered resources are notified
-          *  @param uri 		Uri to discover. If null, do not include uri in discovery
-          *  @param types       Resources types used as discovery filter
-          *
-          *  @return Pointer to the discovery task.
-          */
-        RCSDiscoveryManager::DiscoveryTask::Ptr discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
-            std::vector<std::string> &types, RCSAddress address = RCSAddress::multicast(), std::string uri = std::string(""));
-
-
         /**
           * @brief Looks up the list of known resources type
           *
@@ -328,19 +203,13 @@ namespace OIC { namespace Service { namespace RichServer
           *
           * @return True if the type is found, false otherwise.
           */
-        bool isResourceLegit(RCSRemoteResourceObject::Ptr resource);
+        bool isResourceLegit(OCResource::Ptr resource);
 
-        /**
-         * @brief Callback invoked when a resource changed state
-         *
-         * @param resourceState Current state of the resource
-         */
-        void monitoringCallback(ResourceState state);
 
 	protected:
 
 	};
-} } }
+} }
 
 #endif /* _CONTROLLER_H_ */
 

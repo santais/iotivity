@@ -50,6 +50,12 @@ controller_env.AppendUnique(CPPPATH = ['../resource-hosting/src'])
 controller_env.AppendUnique(CPPPATH = ['../../resource/include'])
 controller_env.AppendUnique(CPPPATH = ['../../resource/csdk/stack/include'])
 
+# RD
+controller_env.AppendUnique(CPPPATH = ['../resource-directory/include'])
+
+# Resource Types
+controller_env.AppendUnique(CPPPATH = ['../rich-server/include'])
+
 
 controller_env.AppendUnique(LIBS = [
     'resource_hosting',
@@ -62,6 +68,8 @@ controller_env.AppendUnique(LIBS = [
     'connectivity_abstraction',
     'libcoap'
     ])
+
+controller_env.PrependUnique(LIBS = 'resource_directory')
 
 if env.get('SECURED') == '1':
     controller_env.AppendUnique(LIBS = ['tinydtls'])
@@ -89,8 +97,8 @@ if target_os == 'android':
 ######################################################################
 controller_src = 'src/Controller.cpp'
 
-Controller_Static = controller_env.StaticLibrary('controller_', controller_src)
-Controller_Shared = controller_env.SharedLibrary('controller_', controller_src)
+Controller_Static = controller_env.StaticLibrary('controller', controller_src)
+Controller_Shared = controller_env.SharedLibrary('controller', controller_src)
 
 controller_env.InstallTarget([Controller_Static, Controller_Shared], 'libcontroller')
 controller_env.UserInstallTargetLib([Controller_Static, Controller_Shared], 'libcontroller')
