@@ -31,7 +31,10 @@ if target_os not in ['arduino','darwin', 'ios']:
     SConscript('things-manager/SConscript')
 
     # Build Rich Server
-    SConscript('rich_server/SConscript')
+    #SConscript('rich-server/SConscript')
+
+    # Build Controller
+    SConscript('controller/SConscript')
 
     # Build notification manager project
     SConscript('resource-hosting/SConscript')
