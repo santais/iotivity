@@ -1,4 +1,8 @@
 #include "Controller.h"
+
+#include <pthread.h>
+#include <mutex>
+#include <condition_variable>
 #include <signal.h>
 #include <unistd.h>
 
@@ -33,7 +37,14 @@ int main()
     signal(SIGINT, handleSigInt);
     while (!g_quitFlag)
     {
-        sleep(2);
+        if(OCProcess() != OC_STACK_OK)
+        {
+            controller->stop();
+            controller->~Controller();
+            std::cout << "OCStack process error" << std::endl;
+            return 0;
+        }
+        sleep(1);
     }
 
     controller->stop();

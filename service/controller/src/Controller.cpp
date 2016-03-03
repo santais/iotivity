@@ -1,4 +1,4 @@
-#include "../include/Controller.h"
+#include "Controller.h"
 
 namespace OIC { namespace Service
 {
@@ -42,14 +42,18 @@ namespace OIC { namespace Service
 	}
 
     /**
-      * Starts the Rich Server process
+      * @brief Start the Controller
+      *
+      * @return The result of the startup. OC_STACK_OK on success
       */
     OCStackResult Controller::start()
     {
         return(this->startRD());
     }
     /**
-     '* Stops the Rich Server process
+      * @brief Stop the Controller
+      *
+      * @param OC_STACK_OK on success
       */
     OCStackResult Controller::stop()
     {
@@ -88,6 +92,9 @@ namespace OIC { namespace Service
       */
     OCStackResult Controller::printResourceData(OCResource::Ptr resource)
     {
+        if(!resource)
+            return OC_STACK_NO_RESOURCE;
+
         std::cout << "===================================================" << std::endl;
         std::cout << "\t Uri of the resources: " << resource->uri() << std::endl;
         std::cout << "\t Host address of the resources: " << resource->host() << std::endl;
@@ -111,6 +118,7 @@ namespace OIC { namespace Service
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
                                                     std::placeholders::_2));
         }*/
+        return OC_STACK_OK;
     }
 
 

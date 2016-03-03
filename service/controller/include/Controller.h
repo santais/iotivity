@@ -58,11 +58,6 @@ namespace OIC { namespace Service
         typedef std::unique_ptr<Controller> Ptr;
         typedef std::unique_ptr<const Controller> ConstPtr;
 
-     /*   typedef std::shared_ptr<OCResource> Ptr;
-        typedef std::shared_ptr<const OCResource> ConstPtr;
-
-        typedef std::shared_ptr<OCResourceRequest> Ptr;*/
-
 	public:
 		/** 
           *	Default Constructor.
@@ -89,12 +84,12 @@ namespace OIC { namespace Service
         ~Controller();
 
         /**
-          * Starts the Rich Server process
+          * Start the Controller
           */
         OCStackResult start();
 
         /**
-         '* Stops the Rich Server process
+         '* Stops the Controller
           */
         OCStackResult stop();
 
