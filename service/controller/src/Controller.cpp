@@ -149,9 +149,6 @@ namespace OIC { namespace Service
         // Only restartt he callback timer if the process has not been stopped.
         if(m_isRunning)
         {
-            // DEBUG
-            std::cout << "Discovering Resources" << std::endl;
-
             m_discoveryInfo.discover();
 
             m_timer.post(m_timerMs, std::bind(&DiscoveryManager::timeOutCB, this));
@@ -230,6 +227,8 @@ namespace OIC { namespace Service
     OCStackResult Controller::stop()
     {
         OCStackResult result = this->stopRD();
+
+        m_discoveryManager.cancel();
 
         // DEBUG. TODO: Remove
         std::cout << "Number of resources instance discovered by stop() call: " << m_resourceList.size() << std::endl;
