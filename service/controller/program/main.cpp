@@ -9,7 +9,7 @@
 using namespace OIC;
 using namespace Service;
 
-Controller::Ptr controller (new Controller());
+Controller::Ptr controller;
 
 
 /*
@@ -32,15 +32,14 @@ void handleSigInt(int signum)
 int main()
 {
     std::cout << "Starting test program" << std::endl;
+    controller = Controller::Ptr(Controller::getInstance());
     controller->start();
-
     signal(SIGINT, handleSigInt);
     while (!g_quitFlag)
     {
         if(OCProcess() != OC_STACK_OK)
         {
             controller->stop();
-            controller->~Controller();
             std::cout << "OCStack process error" << std::endl;
             return 0;
         }

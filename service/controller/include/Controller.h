@@ -49,6 +49,133 @@ namespace OIC { namespace Service
     const std::string HOSTING_TAG = "/hosting";
     const auto HOSTING_TAG_SIZE = HOSTING_TAG.size();
 
+
+    /**
+     * @brief The DiscoveryManagerInfo class
+     */
+    class DiscoveryManagerInfo
+    {
+    public:
+        /**
+         * @brief DiscoveryManagerInfo
+         */
+        DiscoveryManagerInfo();
+
+        /**
+         * @brief DiscoveryManagerInfo
+         * @param host
+         * @param uri
+         * @param types
+         * @param cb
+         */
+        DiscoveryManagerInfo(const std::string& host, const std::string& uri,
+                             const std::vector<std::string>& types, FindCallback cb);
+
+
+        /**
+         * @brief discover
+         */
+        void discover() const;
+
+    private:
+        std::string m_host;
+        std::string m_relativeUri;
+        std::vector<std::string> m_resourceTypes;
+        FindCallback m_discoveryCb;
+    };
+
+    /**
+     * @brief The DiscoveryManager class
+     *
+     * Discovers resource on the network
+     */
+    class DiscoveryManager
+    {
+        typedef long long cbTimer;
+
+    public:
+        /**
+         * @brief DiscoveryManager
+         * @param time_ms
+         */
+        DiscoveryManager(cbTimer timeMs);
+        DiscoveryManager()                                          = default;
+        DiscoveryManager(const DiscoveryManager& dm)                = default;
+        DiscoveryManager(DiscoveryManager&& dm)                     = default;
+        DiscoveryManager& operator=(const DiscoveryManager& dm)     = default;
+        DiscoveryManager& operator=(DiscoveryManager&& dm)          = default;
+
+        ~DiscoveryManager();
+
+        /**
+         * @brief isSearching
+         * @return
+         */
+        bool isSearching() const;
+
+        /**
+         * @brief cancel
+         */
+        void cancel();
+
+        /**
+         * @brief setTimer
+         * @param time_ms
+         */
+        void setTimer(cbTimer time_ms);
+
+        /**
+         * @brief discoverResource
+         * @param types
+         * @param cb
+         * @param host
+         */
+        void discoverResource(const std::string& uri, const std::vector<std::string>& types, FindCallback cb,
+                              std::string host = "");
+
+        /**
+         * @brief discoverResource
+         * @param type
+         * @param cb
+         * @param host
+         */
+        void discoverResource(const std::string& uri, const std::string& type, FindCallback cb,
+                              std::string host = "");
+    private:
+        /**
+         * @brief m_timer
+         */
+        ExpiryTimer m_timer;
+
+        /**
+         * @brief m_timerMs
+         */
+        cbTimer m_timerMs;
+
+        /**
+         * @brief m_isRunning
+         */
+        bool m_isRunning;
+
+        /**
+         * @brief m_discoveryInfo
+         */
+        DiscoveryManagerInfo m_discoveryInfo;
+
+        /**
+         * @brief m_cancelMutex
+         */
+        std::mutex m_discoveryMutex;
+
+    private:
+
+        /**
+         * @brief timeOutCB
+         * @param id
+         */
+        void timeOutCB();
+    };
+
     class Controller
 	{
     private:
@@ -59,22 +186,19 @@ namespace OIC { namespace Service
         typedef std::unique_ptr<const Controller> ConstPtr;
 
 	public:
-		/** 
-          *	Default Constructor.
-          *
-          *	Initialize platform and device info.
-          *	Starts by discovering resource hosts and stores them in the resource list
-          *	Discovers other resources afterwards.
-          */
-        Controller();
-
         /**
           * @brief Default Constructor
           *
           * @param platformInfo Info regarding the platform
           * @param deviceInfo   Char* naming the device
           */
-        Controller(OCPlatformInfo &platformInfo, OCDeviceInfo &deviceInfo);
+        //Controller(OCPlatformInfo &platformInfo, OCDeviceInfo &deviceInfo);
+
+        /**
+         * @brief getInstance
+         * @return
+         */
+        static Controller* getInstance();
 
 		/**
           * Destructor.
@@ -119,6 +243,11 @@ namespace OIC { namespace Service
         FindCallback m_discoverCallback;
 
         /**
+          *
+          */
+        DiscoveryManager m_discoveryManager;
+
+        /**
           * Timer used for monitoring
           */
          ExpiryTimer m_discoveryTimer;
@@ -130,6 +259,14 @@ namespace OIC { namespace Service
          bool m_RDStarted;
 
 	private:
+         /**
+           *	Default Constructor.
+           *
+           *	Initialize platform and device info.
+           *	Starts by discovering resource hosts and stores them in the resource list
+           *	Discovers other resources afterwards.
+           */
+         Controller();
 
          /**
           * @brief configurePlatform Configures the platform
@@ -207,7 +344,7 @@ namespace OIC { namespace Service
          * @param rep           Attribute representation
          * @param eCode         Result of the get request
          */
-        void getRequestCb(HeaderOptions& options, OCRepresentation& rep, const int eCode);
+        static void getRequestCb(const HeaderOptions&, const OCRepresentation& rep, const int eCode);
 
         /**
          * @brief putRequestCb CB called when a put request has been answered
@@ -216,7 +353,7 @@ namespace OIC { namespace Service
          * @param rep           Attribute representation
          * @param eCode         Result of the PUT request
          */
-        void putRequestCb(HeaderOptions& options, OCRepresentation& rep, const int eCode);
+        static void putRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode);
 
 
         /**
@@ -226,7 +363,7 @@ namespace OIC { namespace Service
          * @param rep           Attribute representation
          * @param eCode         Result of the POST request
          */
-        void postRequestCb(HeaderOptions& options, OCRepresentation& rep, const int eCode);
+        static void postRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode);
 
         /**
          * @brief putRequestCb CB called when a put request has been answered
@@ -236,134 +373,8 @@ namespace OIC { namespace Service
          * @param eCode         Result of the PUT request
          * @param sequenceNum   The current number of notified calls. Used for synchronization.
          */
-        void onObserve(HeaderOptions& options, OCRepresentation& rep, const int& eCode,
+        static void onObserve(const HeaderOptions& options, const OCRepresentation& rep, const int& eCode,
                        const int& sequenceNumber);
-
-
-        /**
-         * @brief The DiscoveryManagerInfo class
-         */
-        class DiscoveryManagerInfo
-        {
-        public:
-            /**
-             * @brief DiscoveryManagerInfo
-             */
-            DiscoveryManagerInfo();
-
-            /**
-             * @brief DiscoveryManagerInfo
-             * @param host
-             * @param uri
-             * @param types
-             * @param cb
-             */
-            DiscoveryManagerInfo(const std::string& host, const std::string& uri,
-                                 const std::vector<std::string>& types, FindCallback cb);
-
-
-            /**
-             * @brief discover
-             */
-            void discover() const;
-
-        private:
-            std::string m_host;
-            std::string m_relativeUri;
-            std::vector<std::string> m_resourceTypes;
-            FindCallback m_discoveryCb;
-        };
-
-        /**
-         * @brief The DiscoveryManager class
-         *
-         * Discovers resource on the network
-         */
-        class DiscoveryManager
-        {
-            typedef long long cbTimer;
-
-        public:
-            /**
-             * @brief DiscoveryManager
-             * @param time_ms
-             */
-            DiscoveryManager(cbTimer timeMs);
-            DiscoveryManager(const DiscoveryManager& dm)                = default;
-            DiscoveryManager(DiscoveryManager&& dm)                     = default;
-            DiscoveryManager& operator=(const DiscoveryManager& dm)     = default;
-            DiscoveryManager& operator=(DiscoveryManager&& dm)          = default;
-
-            ~DiscoveryManager();
-
-            /**
-             * @brief isSearching
-             * @return
-             */
-            bool isSearching() const;
-
-            /**
-             * @brief cancel
-             */
-            void cancel();
-
-            /**
-             * @brief setTimer
-             * @param time_ms
-             */
-            void setTimer(cbTimer time_ms);
-
-            /**
-             * @brief discoverResource
-             * @param types
-             * @param cb
-             * @param host
-             */
-            void discoverResource(const std::string& uri, const std::vector<std::string>& types, FindCallback cb,
-                                  std::string host = "");
-
-            /**
-             * @brief discoverResource
-             * @param type
-             * @param cb
-             * @param host
-             */
-            void discoverResource(const std::string& uri, const std::string& type, FindCallback cb,
-                                  std::string host = "");
-        private:
-            /**
-             * @brief m_timer
-             */
-            ExpiryTimer m_timer;
-
-            /**
-             * @brief m_timerMs
-             */
-            cbTimer m_timerMs;
-
-            /**
-             * @brief m_isRunning
-             */
-            bool m_isRunning;
-
-            /**
-             * @brief m_discoveryInfo
-             */
-            DiscoveryManagerInfo m_discoveryInfo;
-
-            /**
-             * @brief m_cancelMutex
-             */
-            std::mutex m_discoveryMutex;
-
-        private:
-
-            /**
-             * @brief timeOutCB
-             * @param id
-             */
-            void timeOutCB(unsigned int id);
-        };
 
 	protected:
 

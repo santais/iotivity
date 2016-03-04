@@ -52,7 +52,7 @@ controller_program_env.AppendUnique(LIBS = [
     'rcs_client',
     'rcs_server',
     'controller',
-    'resource_directory',	
+    #'resource_directory',	
     'rcs_common',
     'oc',
     'octbstack',
@@ -61,7 +61,6 @@ controller_program_env.AppendUnique(LIBS = [
     'coap',
     'pthread'
     ])
-controller_program_env.AppendUnique(CPPPATH = ['../include'])
 
 if env.get('SECURED') == '1':
     controller_program_env.AppendUnique(LIBS = ['tinydtls'])

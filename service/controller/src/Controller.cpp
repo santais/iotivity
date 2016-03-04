@@ -3,18 +3,177 @@
 
 namespace OIC { namespace Service
 {
+
+    constexpr unsigned int CONTROLLER_POLLING_DISCOVERY_MS = 5000; // in milliseconds
+
+/********************************** DiscoveryMangerInfo *************************************/
+
+    /**
+     * @brief Controller::DiscoveryManagerInfo::DiscoveryManagerInfo
+     */
+    DiscoveryManagerInfo::DiscoveryManagerInfo()
+    {
+        ;
+    }
+
+    /**
+     * @brief Controller::DiscoveryManagerInfo::DiscoveryManagerInfo
+     * @param host
+     * @param uri
+     * @param types
+     * @param cb
+     */
+    DiscoveryManagerInfo::DiscoveryManagerInfo(const string&host, const string& uri, const std::vector<std::string>& types, FindCallback cb)
+        : m_host(host),
+          m_relativeUri(uri),
+          m_resourceTypes(std::move(types)),
+          m_discoveryCb(std::move(cb)) {;}
+
+    /**
+     * @brief Controller::DiscoveryManagerInfo::discover
+     */
+    void DiscoveryManagerInfo::discover() const
+    {
+        for(auto& type : m_resourceTypes)
+        {
+            OC::OCPlatform::findResource(m_host, m_relativeUri + "?rt=" + type, CT_IP_USE_V4, m_discoveryCb, QualityOfService::NaQos);
+        }
+    }
+
+
+/********************************** DsicoveryManager *************************************/
+
+    /**
+     * @brief Controller::DiscoveryManager::DiscoveryManager
+     * @param time_ms
+     */
+    DiscoveryManager::DiscoveryManager(cbTimer time_ms) : m_timerMs(time_ms), m_isRunning(false) {}
+
+
+    /**
+     * @brief Controller::DiscoveryManager::~DiscoveryManager
+     */
+    DiscoveryManager::~DiscoveryManager()
+    {
+
+    }
+
+    /**
+     * @brief isSearching
+     * @return
+     */
+    bool DiscoveryManager::isSearching() const
+    {
+        return m_isRunning;
+    }
+
+    /**
+     * @brief cancel
+     */
+    void DiscoveryManager::cancel()
+    {
+        std::lock_guard<std::mutex> lock(m_discoveryMutex);
+        if(m_isRunning)
+        {
+           m_isRunning = false;
+        }
+    }
+
+    /**
+     * @brief setTimer
+     * @param time_ms
+     */
+    void DiscoveryManager::setTimer(const cbTimer time_ms)
+    {
+        m_timerMs = time_ms;
+    }
+
+    /**
+     * @brief discoverResource
+     * @param types
+     * @param cb
+     * @param host
+     */
+    void DiscoveryManager::discoverResource(const std::string& uri, const std::vector<std::string>& types, FindCallback cb,
+                                std::string host )
+    {
+        std::lock_guard<std::mutex> lock(m_discoveryMutex);
+
+        m_isRunning = true;
+
+        DiscoveryManagerInfo discoveryInfo(host, uri.empty() ? OC_RSRVD_WELL_KNOWN_URI : uri, types,
+                                           std::move(cb));
+
+        m_discoveryInfo = std::move(discoveryInfo);
+
+        m_discoveryInfo.discover();
+
+        m_timer.post(m_timerMs, std::bind(&DiscoveryManager::timeOutCB, this));
+    }
+
+    /**
+     * @brief discoverResource
+     * @param type
+     * @param cb
+     * @param host
+     */
+    void DiscoveryManager::discoverResource(const std::string& uri, const std::string& type, FindCallback cb,
+                                std::string host)
+    {
+        std::lock_guard<std::mutex> lock(m_discoveryMutex);
+
+        m_isRunning = true;
+
+        DiscoveryManagerInfo discoveryInfo(host, uri.empty() ? OC_RSRVD_WELL_KNOWN_URI : uri, std::vector<std::string> { type },
+                                           std::move(cb));
+
+        m_discoveryInfo = std::move(discoveryInfo);
+
+        m_discoveryInfo.discover();
+
+        // DEBUG
+        std::cout << "Starting timer for DiscoveryManager with timer: " << m_timerMs << std::endl;
+        m_timer.post(m_timerMs, std::bind(&DiscoveryManager::timeOutCB, this));
+    }
+
+
+    /**
+     * @brief timeOutCB
+     * @param id
+     */
+    void DiscoveryManager::timeOutCB()
+    {
+        // Check if the mutex is free
+        std::lock_guard<std::mutex> lock(m_discoveryMutex);
+
+        // Only restartt he callback timer if the process has not been stopped.
+        if(m_isRunning)
+        {
+            // DEBUG
+            std::cout << "Discovering Resources" << std::endl;
+
+            m_discoveryInfo.discover();
+
+            m_timer.post(m_timerMs, std::bind(&DiscoveryManager::timeOutCB, this));
+        }
+    }
+
+    /*********************************** Controller ************************************************/
+
     Controller::Controller() :
         m_discoverCallback(std::bind(&Controller::foundResourceCallback, this, std::placeholders::_1)),
         m_resourceList(),
         m_RDStarted(false)
 	{
-        std::cout << "Initializing default constructor " << std::endl;
         // Set default platform and device information
         Controller::setDeviceInfo();
         //Controller::setPlatformInfo();
 
         this->configurePlatform();
-	}
+
+        m_discoveryManager.setTimer(CONTROLLER_POLLING_DISCOVERY_MS);
+        m_discoveryManager.discoverResource(OC_RSRVD_WELL_KNOWN_URI, OIC_DEVICE_LIGHT, m_discoverCallback);
+    }
 
     /**
       * @brief Default Constructor
@@ -22,7 +181,7 @@ namespace OIC { namespace Service
       * @param platformInfo Info regarding the platform
       * @param deviceInfo   Char* naming the device
       */
-    Controller::Controller(OCPlatformInfo &platformInfo, OCDeviceInfo &deviceInfo) :
+    /*Controller::Controller(OCPlatformInfo &platformInfo, OCDeviceInfo &deviceInfo) :
         m_discoverCallback(std::bind(&Controller::foundResourceCallback, this, std::placeholders::_1)),
         m_resourceList(),
         m_RDStarted(false)
@@ -32,7 +191,18 @@ namespace OIC { namespace Service
         Controller::setPlatformInfo(platformInfo);
 
         this->configurePlatform();
+    }*/
+
+    /**
+     * @brief getInstance
+     * @return
+     */
+    Controller* Controller::getInstance()
+    {
+        static Controller* instance(new Controller);
+        return instance;
     }
+
 
     Controller::~Controller()
 	{
@@ -49,6 +219,7 @@ namespace OIC { namespace Service
       */
     OCStackResult Controller::start()
     {
+        // Start the discovery manager
         return(this->startRD());
     }
     /**
@@ -84,6 +255,11 @@ namespace OIC { namespace Service
         }
     }
 
+    void getRequest(const HeaderOptions&, const OCRepresentation& rep, const int eCode)
+    {
+
+    }
+
     /**
       * @brief Prints the data of an resource object
       *
@@ -114,6 +290,8 @@ namespace OIC { namespace Service
 
         // DEBUG
         // Get the attibutes.
+        QueryParamsMap map;
+        resource->get(map, &Controller::getRequestCb);
         /*if(Controller::isResourceLegit(resource))
         {
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
@@ -135,10 +313,10 @@ namespace OIC { namespace Service
 
         if(this->isResourceLegit(resource))
         {
-            this->printResourceData(resource);
-
             if(m_resourceList.insert({resource->uri() + resource->host(), resource}).second)
             {
+                this->printResourceData(resource);
+
                 std::cout << "Added device: " << resource->uri() + resource->host() << std::endl;
                 std::cout << "Device successfully added to the list" << std::endl;
             }
@@ -154,6 +332,7 @@ namespace OIC { namespace Service
       */
     OCStackResult Controller::startRD()
     {
+        std::cout << "Inside startRD" << std::endl;
         if(!m_RDStarted)
         {
             std::cout << "Starting OCResource Directory" << std::endl;
@@ -322,9 +501,34 @@ namespace OIC { namespace Service
      * @param rep           Attribute representation
      * @param eCode         Result of the get request
      */
-    void Controller::getRequestCb(HeaderOptions& options, OCRepresentation& rep, const int eCode)
+    void Controller::getRequestCb(const HeaderOptions&, const OCRepresentation& rep, const int eCode)
     {
+        // Search through the attributes
+        std::unique_ptr<OCRepPayload> payloadPtr(rep.getPayload());
 
+        OCRepPayloadValue* values = payloadPtr->values;
+
+        while(values != NULL)
+        {
+            std::cout << values->name << " value is: ";
+            switch(values->type)
+            {
+                case OCREP_PROP_INT:
+                    std::cout << values->i << std::endl;
+                break;
+                case OCREP_PROP_DOUBLE:
+                    std::cout << values->d << std::endl;
+                break;
+                case OCREP_PROP_BOOL:
+                    std::cout << std::boolalpha <<  values->b << std::endl;
+                break;
+                case OCREP_PROP_STRING:
+                    std::cout << values->str << std::endl;
+                break;
+
+            }
+            values = values->next;
+        }
     }
 
     /**
@@ -334,7 +538,7 @@ namespace OIC { namespace Service
      * @param rep           Attribute representation
      * @param eCode         Result of the PUT request
      */
-    void Controller::putRequestCb(HeaderOptions& options, OCRepresentation& rep, const int eCode)
+    void Controller::putRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode)
     {
 
     }
@@ -346,7 +550,7 @@ namespace OIC { namespace Service
      * @param rep           Attribute representation
      * @param eCode         Result of the POST request
      */
-    void Controller::postRequestCb(HeaderOptions& options, OCRepresentation& rep, const int eCode)
+    void Controller::postRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode)
     {
 
     }
@@ -359,153 +563,10 @@ namespace OIC { namespace Service
      * @param eCode         Result of the PUT request
      * @param sequenceNum   The current number of notified calls. Used for synchronization.
      */
-    void Controller::onObserve(HeaderOptions& options, OCRepresentation& rep, const int& eCode,
+    void Controller::onObserve(const HeaderOptions& options, const OCRepresentation& rep, const int& eCode,
                    const int& sequenceNumber)
     {
 
-    }
-
-/********************************** DiscoveryMangerInfo *************************************/
-
-    /**
-     * @brief Controller::DiscoveryManagerInfo::DiscoveryManagerInfo
-     */
-    Controller::DiscoveryManagerInfo::DiscoveryManagerInfo()
-    {
-        ;
-    }
-
-    /**
-     * @brief Controller::DiscoveryManagerInfo::DiscoveryManagerInfo
-     * @param host
-     * @param uri
-     * @param types
-     * @param cb
-     */
-    Controller::DiscoveryManagerInfo::DiscoveryManagerInfo(const string&host, const string& uri, const std::vector<std::string>& types, FindCallback cb)
-        : m_host(host),
-          m_relativeUri(uri),
-          m_resourceTypes(std::move(types)),
-          m_discoveryCb(std::move(cb)) {;}
-
-    /**
-     * @brief Controller::DiscoveryManagerInfo::discover
-     */
-    void Controller::DiscoveryManagerInfo::discover() const
-    {
-        for(auto& type : m_resourceTypes)
-        {
-            OC::OCPlatform::findResource(m_host, m_relativeUri + "?rt=" + type, CT_IP_USE_V4, m_discoveryCb, QualityOfService::NaQos);
-        }
-    }
-
-
-/********************************** DsicoveryManager *************************************/
-
-    /**
-     * @brief Controller::DiscoveryManager::DiscoveryManager
-     * @param time_ms
-     */
-    Controller::DiscoveryManager::DiscoveryManager(cbTimer time_ms) : m_timerMs(time_ms), m_isRunning(false) {}
-
-
-    /**
-     * @brief Controller::DiscoveryManager::~DiscoveryManager
-     */
-    Controller::DiscoveryManager::~DiscoveryManager()
-    {
-
-    }
-
-    /**
-     * @brief isSearching
-     * @return
-     */
-    bool Controller::DiscoveryManager::isSearching() const
-    {
-        return m_isRunning;
-    }
-
-    /**
-     * @brief cancel
-     */
-    void Controller::DiscoveryManager::cancel()
-    {
-        std::lock_guard<std::mutex> lock(m_discoveryMutex);
-        if(m_isRunning)
-        {
-           m_isRunning = false;
-        }
-    }
-
-    /**
-     * @brief setTimer
-     * @param time_ms
-     */
-    void Controller::DiscoveryManager::setTimer(const cbTimer time_ms)
-    {
-        m_timerMs = time_ms;
-    }
-
-    /**
-     * @brief discoverResource
-     * @param types
-     * @param cb
-     * @param host
-     */
-    void Controller::DiscoveryManager::discoverResource(const std::string& uri, const std::vector<std::string>& types, FindCallback cb,
-                                std::string host )
-    {
-        std::lock_guard<std::mutex> lock(m_discoveryMutex);
-
-        DiscoveryManagerInfo discoveryInfo(host, uri.empty() ? OC_RSRVD_WELL_KNOWN_URI : uri, types,
-                                           std::move(cb));
-
-        m_discoveryInfo = std::move(discoveryInfo);
-
-        m_discoveryInfo.discover();
-
-        m_timer.post(m_timerMs, std::bind(&Controller::DiscoveryManager::timeOutCB, this, std::placeholders::_1));
-    }
-
-    /**
-     * @brief discoverResource
-     * @param type
-     * @param cb
-     * @param host
-     */
-    void Controller::DiscoveryManager::discoverResource(const std::string& uri, const std::string& type, FindCallback cb,
-                                std::string host)
-    {
-        std::lock_guard<std::mutex> lock(m_discoveryMutex);
-
-        DiscoveryManagerInfo discoveryInfo(host, uri.empty() ? OC_RSRVD_WELL_KNOWN_URI : uri, std::vector<std::string> { type },
-                                           std::move(cb));
-
-        m_discoveryInfo = std::move(discoveryInfo);
-
-        m_discoveryInfo.discover();
-
-        m_timer.post(m_timerMs, std::bind(&Controller::DiscoveryManager::timeOutCB, this, std::placeholders::_1));
-    }
-
-
-    /**
-     * @brief timeOutCB
-     * @param id
-     */
-    void Controller::DiscoveryManager::timeOutCB(unsigned int id)
-    {
-        // Check if the mutex is free
-        std::lock_guard<std::mutex> lock(m_discoveryMutex);
-
-        // Only restartt he callback timer if the process has not been stopped.
-        if(m_isRunning)
-        {
-            m_discoveryInfo.discover();
-
-            m_timer.post(m_timerMs, std::bind(&Controller::DiscoveryManager::timeOutCB, this, std::placeholders::_1));
-        }
     }
 
 } }
