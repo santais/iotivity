@@ -27,9 +27,19 @@
 using namespace std;
 
 //
+// Resource Devices
+//
+const static char* OIC_DEVICE_LIGHT                      = "oic.d.light";
+const static char* OIC_DEVICE_SENSOR                     = "oic.d.sensor";
+const static char* OIC_DEVICE_BUTTON                     = "oic.d.button";
+const static char* OIC_DEVICE_TV                         = "oic.d.tv";
+const static char* OIC_DEVICE_THERMOSTAT                 = "oic.d.theromstat";
+
+// More toc ome...
+
+//
 // Light Resource Types
 //
-const static char* OIC_TYPE_LIGHT                      = "oic.r.light";
 
 /**
  * @brief OIC_TYPE_LIGHT_BRIGHTNESS
@@ -79,7 +89,6 @@ const static char* OIC_TYPE_TEMPERATURE                = "oic.r.temperature";
 //
 // Generic Resource Types
 //
-const static char* OIC_TYPE_SENSOR                     = "oic.r.sensor";
 
 /**
  * @brief OIC_TYPE_SENSOR_ACTITIVTY_COUNT
@@ -182,14 +191,6 @@ const static char* OIC_TYPE_AUDIO                      = "oic.r.audio";
 //
 // Button Resource Types
 //
-
-/**
- * @brief OIC_TYPE_BUTTON
- *
- * @param value             boolean
- */
-const static char* OIC_TYPE_BUTTON                     = "oic.r.button";
-
 /**
  * @brief OIC_TYPE_BINARY_SWITCH
  *

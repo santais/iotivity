@@ -73,9 +73,10 @@ OCEntityHandlerResult entityHandlerCb(std::shared_ptr<OCResourceRequest> request
             }
 
             OCRepresentation rep;
-            rep.setValue("state", 1);
-            rep.setValue("power", 100);
-            rep.setValue("name", "Some value");
+            std::string name("Mark's Light");
+            rep.setValue("state", true);
+            rep.setValue("power", (int)100);
+            rep.setValue("name", name);
 
 
             // If the request type is GET
@@ -110,9 +111,9 @@ OCEntityHandlerResult entityHandlerCb(std::shared_ptr<OCResourceRequest> request
 void registerLocalResources()
 {
     std::string resourceURI_thermostat = "/a/thermostat";
-    std::string resourceTypeName_thermostat = "oic.r.thermostat";
+    std::string resourceTypeName_thermostat = "oic.d.sensor";
     std::string resourceURI_light = "/a/light";
-    std::string resourceTypeName_light = "core.light";
+    std::string resourceTypeName_light = "oic.d.light";
     std::string resourceURI_button = "/a/button";
     std::string resourceTypeName_button = "oic.r.button";
     std::string resourceInterface = DEFAULT_INTERFACE;

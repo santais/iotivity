@@ -57,6 +57,7 @@ int main()
             printf("OCStack process error\n");
             return 0;
         }
+
     }
 
     if (OCRDStop() != OC_STACK_OK)
