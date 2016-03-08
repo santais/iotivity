@@ -30,6 +30,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <condition_variable>
 
 #include "ResourceTypes.h"
 
@@ -42,6 +43,9 @@
 #include "RCSResourceObject.h"
 #include "RCSRemoteResourceObject.h"
 #include "RCSDiscoveryManager.h"
+
+// Scene-manager
+#include "SceneList.h"
 
 
 
@@ -242,6 +246,7 @@ namespace OIC { namespace Service
           * Mutex when writing and reading to/from a ResourceHosting
           */
         std::mutex m_resourceMutex;
+        std::condition_variable m_cond;
 
 
         /**
@@ -286,7 +291,7 @@ namespace OIC { namespace Service
           *
           * @param resource     The discovered resource.
           */
-        void foundResourceCallback(RCSRemoteResourceObject::Ptr resource);
+        void foundResourceCallback(std::shared_ptr<RCSRemoteResourceObject> resource);
 
 		/**
           * Start the Resource Directory Server. Initiates resource discovery

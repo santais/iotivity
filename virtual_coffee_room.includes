@@ -106,6 +106,7 @@ service/resource-hosting/SampleApp/tizen/sampleConsumer/src
 service/resource-hosting/src
 service/resource-hosting/unittest
 service/rich_server/include
+service/controller/include
 service/simulator/inc
 service/simulator/java/jni
 service/simulator/ramlparser/raml
@@ -121,3 +122,4 @@ service/things-manager/sdk/inc
 service/things-manager/sdk/java/jni/jniutil/inc
 service/things-manager/sdk/java/jni/tm/inc
 service/things-manager/unittests
+service/scene-manager/include

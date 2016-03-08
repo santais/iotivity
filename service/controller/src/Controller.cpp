@@ -1,4 +1,4 @@
-#include "../include/Controller.h"
+#include "Controller.h"
 #include "RCSRemoteResourceObject.h"
 
 namespace OIC { namespace Service
@@ -217,8 +217,23 @@ namespace OIC { namespace Service
     OCStackResult Controller::start()
     {
         // Start the discoveryManager
-        std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, "oic.d.fan"};
-        m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
+        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, "oic.d.fan"};
+        const std::string relativeUri = OC_RSRVD_WELL_KNOWN_URI;
+        try
+        {
+            m_discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(
+                    RCSAddress::multicast(), relativeUri, types, m_discoverCallback);
+        }
+        catch(const RCSPlatformException& e)
+        {
+             std::cout << e.what() << std::endl;
+        }
+        catch(const RCSException& e)
+        {
+            std::cout << e.what() << std::endl;
+        }
+
+        //m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
 
         // Start the discovery manager
         return(this->startRD());
@@ -293,7 +308,7 @@ namespace OIC { namespace Service
 
         // DEBUG
         // Get the attibutes.
-        if(Controller::isResourceLegit(resource))
+        if(this->isResourceLegit(resource))
         {
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
                                                     std::placeholders::_2));
@@ -467,21 +482,32 @@ namespace OIC { namespace Service
     {
         RCSDiscoveryManager::DiscoveryTask::Ptr discoveryTask;
 
-        if (type.empty() && uri.empty())
+        try
         {
-            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(address, cb);
+            if (type.empty() && uri.empty())
+            {
+                discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(address, cb);
+            }
+            else if (type.empty() && !(uri.empty()))
+            {
+                discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(address, uri, cb);
+            }
+            else if (!(type.empty()) && uri.empty())
+            {
+                discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByType(address, type, cb);
+            }
+            else
+            {
+                discoveryTask = OIC::Service::RCSDiscoveryManager::getInstance()->discoverResourceByType(address, uri, type, cb);
+            }
         }
-        else if (type.empty() && !(uri.empty()))
+        catch(const RCSPlatformException& e)
         {
-            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(address, uri, cb);
+             std::cout << e.what() << std::endl;
         }
-        else if (!(type.empty()) && uri.empty())
+        catch(const RCSException& e)
         {
-            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByType(address, type, cb);
-        }
-        else
-        {
-            discoveryTask = OIC::Service::RCSDiscoveryManager::getInstance()->discoverResourceByType(address, uri, type, cb);
+            std::cout << e.what() << std::endl;
         }
 
         return discoveryTask;
@@ -528,13 +554,15 @@ namespace OIC { namespace Service
         std::string uri = resource->getUri();
         std::vector<std::string> types = resource->getTypes();
 
-        /*if (uri == "/oic/p" || uri == "/oic/d")
-            return false;
-        else*/ if (uri.compare(
-                uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)
+        if(uri.size() > HOSTING_TAG_SIZE)
         {
-            std::cout << "Device: " << uri << " is not a legit device. Device is hosting" << std::endl;
-            return false;
+            if (uri.compare(
+                    uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)
+            {
+                std::cout << "Device: " << uri << " is not a legit device. Device is hosting" << std::endl;
+                return false;
+            }
+            return true;
         }
         else if (std::find_if(types.begin(), types.end(), [](const std::string &type) {return type == OIC_TYPE_RESOURCE_HOST;}) != types.end())
         {

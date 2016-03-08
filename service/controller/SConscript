@@ -47,6 +47,7 @@ controller_env.AppendUnique(CPPPATH = ['../resource-encapsulation/include'])
 controller_env.AppendUnique(CPPPATH = ['../resource-encapsulation/src/common/primitiveResource/include'])
 controller_env.AppendUnique(CPPPATH = ['../resource-encapsulation/src/common/expiryTimer/include'])
 controller_env.AppendUnique(CPPPATH = ['../resource-hosting/src'])
+controller_env.AppendUnique(CPPPATH = ['../scene-manager/include', '../scene_manager/src'])
 controller_env.AppendUnique(CPPPATH = ['../../resource/include'])
 controller_env.AppendUnique(CPPPATH = ['../../resource/csdk/stack/include'])
 
@@ -58,6 +59,7 @@ controller_env.AppendUnique(CPPPATH = ['../rich-server/include'])
 
 
 controller_env.AppendUnique(LIBS = [
+    'scene_manager',
     'resource_hosting',
     'rcs_client',
     'rcs_server',
