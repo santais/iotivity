@@ -185,8 +185,9 @@ namespace OIC
                 return;
             }
 
+            // MP Fixed std::move from sceneName
             m_sceneCollectionResourceObject->setAttribute(
-                    SCENE_KEY_LAST_SCENE, std::move(sceneName));
+                    SCENE_KEY_LAST_SCENE, sceneName);
 
             {
                 std::lock_guard<std::mutex> memberlock(m_sceneMemberLock);

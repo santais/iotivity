@@ -22,6 +22,7 @@
 #define SM_SCENELIST_H_
 
 #include "SceneCollection.h"
+#include <condition_variable>
 
 #include <string>
 

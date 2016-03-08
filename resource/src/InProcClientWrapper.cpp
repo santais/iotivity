@@ -142,9 +142,9 @@ namespace OC
 
         if(clientResponse->result != OC_STACK_OK)
         {
-            oclog() << "listenCallback(): failed to create resource. clientResponse: "
+           /* oclog() << "listenCallback(): failed to create resource. clientResponse: "
                     << clientResponse->result
-                    << std::flush;
+                    << std::flush;*/
 
             return OC_STACK_KEEP_TRANSACTION;
         }

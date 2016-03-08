@@ -309,6 +309,7 @@ namespace OIC { namespace Service
      void Controller::foundResourceCallback(RCSRemoteResourceObject::Ptr resource)
      {
         std::lock_guard<std::mutex> lock(m_resourceMutex);
+        std::cout << __func__ << std::endl;
 
         if(this->isResourceLegit(resource))
         {
@@ -328,8 +329,8 @@ namespace OIC { namespace Service
                     resource->startMonitoring(std::bind(&Controller::stateChangeCallback, this, std::placeholders::_1));
                 }
 
-                std::cout << "Added device: " << resource->getUri() + resource->getAddress() << std::endl;
-                std::cout << "Device successfully added to the list" << std::endl;
+                std::cout << "\tAdded device: " << resource->getUri() + resource->getAddress() << std::endl;
+                std::cout << "\tDevice successfully added to the list" << std::endl;
             }
         }
      }
@@ -388,6 +389,8 @@ namespace OIC { namespace Service
      */
     void Controller::getAttributesCallback(const RCSResourceAttributes& attr, int eCode)
     {
+        std::cout << __func__ << std::endl;
+
         if (eCode == OC_STACK_OK)
         {
             this->printAttributes(attr);
@@ -407,7 +410,7 @@ namespace OIC { namespace Service
     {
         if(attr.empty())
         {
-            std::cout << "Attributes empty" << std::endl;
+            std::cout << "\tAttributes empty" << std::endl;
         }
         else
         {
@@ -577,12 +580,12 @@ namespace OIC { namespace Service
             const RCSResourceAttributes::Value value = attribute.value();
             if(key == "state" && value.toString() == "true")
             {
-                std::cout << "Button state is ON. Setting scene on" << std::endl;
+                std::cout << "\tButton state is ON. Setting scene on" << std::endl;
                 m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
             }
             else if(key == "state" && value.toString() == "false")
             {
-                std::cout << "Button state is OFF. Setting scene off" << std::endl;
+                std::cout << "\tButton state is OFF. Setting scene off" << std::endl;
                 m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
             }
         }
@@ -607,12 +610,6 @@ namespace OIC { namespace Service
             ResourceState newState = iterator->second->getState();
             if (newState == ResourceState::LOST_SIGNAL || newState == ResourceState::DESTROYED)
             {
-
-                m_sceneStart->getSceneAction(iterator->second).reset();
-                m_sceneStop->getSceneAction(iterator->second).reset();
-
-                //delete(m_sceneStop->getSceneAction(m_resourceList(iterator)));
-
                 std::cout << "Removing resource: " << iterator->second->getUri() << std::endl;
                 m_resourceList.erase(iterator++);
 

@@ -26,6 +26,8 @@
 #include "SceneCommons.h"
 #include "OCPlatform.h"
 
+#include <condition_variable>
+
 using namespace std;
 using namespace OIC::Service;
 using namespace OC;
