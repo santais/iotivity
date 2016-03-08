@@ -1,4 +1,4 @@
-#include "Controller.h"
+#include "../include/Controller.h"
 #include "RCSRemoteResourceObject.h"
 
 namespace OIC { namespace Service
@@ -155,7 +155,7 @@ namespace OIC { namespace Service
         }
     }
 
-    /*********************************** Controller ************************************************/
+/****************************************** Controller ************************************************/
 
     Controller::Controller() :
         m_discoverCallback(std::bind(&Controller::foundResourceCallback, this, std::placeholders::_1)),
@@ -168,8 +168,8 @@ namespace OIC { namespace Service
 
         this->configurePlatform();
 
-        m_discoveryManager.setTimer(CONTROLLER_POLLING_DISCOVERY_MS);
-        m_discoveryManager.discoverResource(OC_RSRVD_WELL_KNOWN_URI, OIC_DEVICE_LIGHT, m_discoverCallback);
+        /*m_discoveryManager.setTimer(CONTROLLER_POLLING_DISCOVERY_MS);
+        m_discoveryManager.discoverResource(OC_RSRVD_WELL_KNOWN_URI, OIC_DEVICE_LIGHT, m_discoverCallback);*/
     }
 
     /**
@@ -216,6 +216,10 @@ namespace OIC { namespace Service
       */
     OCStackResult Controller::start()
     {
+        // Start the discoveryManager
+        std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, "oic.d.fan"};
+        m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
+
         // Start the discovery manager
         return(this->startRD());
     }
@@ -228,7 +232,10 @@ namespace OIC { namespace Service
     {
         OCStackResult result = this->stopRD();
 
-        m_discoveryManager.cancel();
+        if(!m_discoveryTask->isCanceled())
+        {
+            m_discoveryTask->cancel();
+        }
 
         // DEBUG. TODO: Remove
         std::cout << "Number of resources instance discovered by stop() call: " << m_resourceList.size() << std::endl;
@@ -266,38 +273,31 @@ namespace OIC { namespace Service
       *
       * @return OC_NO_RESOURCE if the resource doesn't exist.
       */
-    OCStackResult Controller::printResourceData(OCResource::Ptr resource)
+    OCStackResult Controller::printResourceData(RCSRemoteResourceObject::Ptr resource)
     {
-        if(!resource)
-            return OC_STACK_NO_RESOURCE;
-
         std::cout << "===================================================" << std::endl;
-        std::cout << "\t Uri of the resources: " << resource->uri() << std::endl;
-        std::cout << "\t Host address of the resources: " << resource->host() << std::endl;
+        std::cout << "\t Uri of the resources: " << resource->getUri() << std::endl;
+        std::cout << "\t Host address of the resources: " << resource->getAddress() << std::endl;
         std::cout << "\t Types are: " << std::endl;
 
-        for (auto type : resource->getResourceTypes())
+        for (auto type : resource->getTypes())
         {
             std::cout << "\t\t type " << type << std::endl;
         }
 
         std::cout << "\t Interfaces are: " << std::endl;
-        for (auto interface : resource->getResourceInterfaces())
+        for (auto interface : resource->getInterfaces())
         {
             std::cout << "\t\t interface " << interface << std::endl;
         }
 
         // DEBUG
         // Get the attibutes.
-        QueryParamsMap map;
-        resource->get(map, &Controller::getRequestCb);
-        /*if(Controller::isResourceLegit(resource))
+        if(Controller::isResourceLegit(resource))
         {
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
                                                     std::placeholders::_2));
-        }*/
-
-        return OC_STACK_OK;
+        }
     }
 
 
@@ -306,17 +306,17 @@ namespace OIC { namespace Service
        *
        * @param resource     The discovered resource.
        */
-     void Controller::foundResourceCallback(OCResource::Ptr resource)
+     void Controller::foundResourceCallback(RCSRemoteResourceObject::Ptr resource)
      {
         std::lock_guard<std::mutex> lock(m_resourceMutex);
 
         if(this->isResourceLegit(resource))
         {
-            if(m_resourceList.insert({resource->uri() + resource->host(), resource}).second)
+            if(m_resourceList.insert({resource->getUri() + resource->getAddress(), resource}).second)
             {
                 this->printResourceData(resource);
 
-                std::cout << "Added device: " << resource->uri() + resource->host() << std::endl;
+                std::cout << "Added device: " << resource->getUri() + resource->getAddress() << std::endl;
                 std::cout << "Device successfully added to the list" << std::endl;
             }
         }
@@ -374,7 +374,7 @@ namespace OIC { namespace Service
      * @param attr          Attributes received from the server
      * @param eCode         Result code of the initiate request
      */
-   /* void Controller::getAttributesCallback(const RCSResourceAttributes& attr, int eCode)
+    void Controller::getAttributesCallback(const RCSResourceAttributes& attr, int eCode)
     {
         if (eCode == OC_STACK_OK)
         {
@@ -397,7 +397,7 @@ namespace OIC { namespace Service
         {
             std::cerr << "Get attributes request failed with code: " << eCode << std::endl;
         }
-    }*/
+    }
 
     /**
       * Sets the device information
@@ -452,24 +452,88 @@ namespace OIC { namespace Service
     }
 
     /**
+      *  @brief Disovery of resources
+      *
+      *  @param address 	mutlicast or unicast address using RCSAddress class
+      *  @param cb 			Callback to which discovered resources are notified
+      *  @param uri 		Uri to discover. If null, do not include uri in discovery
+      *  @param type        Resource type used as discovery filter
+      *
+      *  @return Pointer to the discovery task.
+      */
+    RCSDiscoveryManager::DiscoveryTask::Ptr Controller::discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
+        RCSAddress address, std::string uri, std::string type)
+
+    {
+        RCSDiscoveryManager::DiscoveryTask::Ptr discoveryTask;
+
+        if (type.empty() && uri.empty())
+        {
+            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(address, cb);
+        }
+        else if (type.empty() && !(uri.empty()))
+        {
+            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResource(address, uri, cb);
+        }
+        else if (!(type.empty()) && uri.empty())
+        {
+            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByType(address, type, cb);
+        }
+        else
+        {
+            discoveryTask = OIC::Service::RCSDiscoveryManager::getInstance()->discoverResourceByType(address, uri, type, cb);
+        }
+
+        return discoveryTask;
+    }
+
+    /**
+      *  @brief Disovery of resources
+      *
+      *  @param address 	mutlicast or unicast address using RCSAddress class
+      *  @param cb 			Callback to which discovered resources are notified
+      *  @param uri 		Uri to discover. If null, do not include uri in discovery
+      *  @param types       Resources types used as discovery filter
+      *
+      *  @return Pointer to the discovery task.
+      */
+    RCSDiscoveryManager::DiscoveryTask::Ptr Controller::discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
+        std::vector<std::string> &types, RCSAddress address, std::string uri)
+    {
+        RCSDiscoveryManager::DiscoveryTask::Ptr discoveryTask;
+
+        if(uri.empty())
+        {
+            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(address, types, cb);
+        }
+        else
+        {
+            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(address, uri, types, cb);
+        }
+
+        return discoveryTask;
+    }
+
+
+    /**
       * @brief Looks up the list of known resources type
       *
       * @param resource     Pointer to the resource object
       *
       * @return True if the type is found, false otherwise.
       */
-    bool Controller::isResourceLegit(OCResource::Ptr resource)
+    bool Controller::isResourceLegit(RCSRemoteResourceObject::Ptr resource)
     {
         // Filter platform and device resources
-        std::string uri = resource->uri();
-        std::vector<std::string> types = resource->getResourceTypes();
+        std::string uri = resource->getUri();
+        std::vector<std::string> types = resource->getTypes();
 
-        if (uri == "/oic/p" || uri == "/oic/d")
+        /*if (uri == "/oic/p" || uri == "/oic/d")
             return false;
-        else if (uri.compare(
+        else*/ if (uri.compare(
                 uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)
         {
-            std::cout << "Device: " << resource->uri() << " is not a legit device. Device is hosting" << std::endl;
+            std::cout << "Device: " << uri << " is not a legit device. Device is hosting" << std::endl;
             return false;
         }
         else if (std::find_if(types.begin(), types.end(), [](const std::string &type) {return type == OIC_TYPE_RESOURCE_HOST;}) != types.end())
@@ -482,16 +546,6 @@ namespace OIC { namespace Service
             return true;
         }
     }
-
-    /**
-     * @brief discoverResource Discovers possible resource candidates
-     *
-     * @param cb            Callback called when a resource is found
-     * @param types         The types to search for
-     * @param host          The endpoint destination host
-     */
-  //  void Controller::discoverResource(FindCallback cb, std::vector<std::string> types, std::string host = "");
-
 
     /**
      * @brief getRequest CB called when a get request has been answered

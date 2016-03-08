@@ -38,6 +38,12 @@
 #include "ExpiryTimer.h"
 #include "rd_server.h"
 
+#include "PrimitiveResource.h"
+#include "RCSResourceObject.h"
+#include "RCSRemoteResourceObject.h"
+#include "RCSDiscoveryManager.h"
+
+
 
 namespace OIC { namespace Service
 {
@@ -224,23 +230,25 @@ namespace OIC { namespace Service
           *
           * @return OC_NO_RESOURCE if the resource doesn't exist.
           */
-        OCStackResult printResourceData(OCResource::Ptr resource);
+        OCStackResult printResourceData(RCSRemoteResourceObject::Ptr resource);
 
     private:
 		/**
 		  * Map containing all discovered resources. 
 		  */
-        std::unordered_map<ResourceKey, OCResource::Ptr> m_resourceList;
+        std::unordered_map<ResourceKey, RCSRemoteResourceObject::Ptr> m_resourceList;
 
         /**
           * Mutex when writing and reading to/from a ResourceHosting
           */
         std::mutex m_resourceMutex;
 
+
         /**
-         * Discovery callback called when a resource is discovered
-         */
-        FindCallback m_discoverCallback;
+          * DiscoveryTask used to cancel and observe the discovery process.
+          */
+        RCSDiscoveryManager::DiscoveryTask::Ptr m_discoveryTask;
+        RCSDiscoveryManager::ResourceDiscoveredCallback m_discoverCallback;
 
         /**
           *
@@ -278,7 +286,7 @@ namespace OIC { namespace Service
           *
           * @param resource     The discovered resource.
           */
-        void foundResourceCallback(OCResource::Ptr resource);
+        void foundResourceCallback(RCSRemoteResourceObject::Ptr resource);
 
 		/**
           * Start the Resource Directory Server. Initiates resource discovery
@@ -302,7 +310,7 @@ namespace OIC { namespace Service
          * @param attr          Attributes received from the server
          * @param eCode         Result code of the initiate request
          */
-        //void getAttributesCB(const RCSResourceAttributes& attr, int eCode);
+        void getAttributesCallback(const RCSResourceAttributes& attr, int eCode);
 
 		/**
 		  * Sets the device information
@@ -328,6 +336,35 @@ namespace OIC { namespace Service
 		  */
 		void setPlatformInfo();
 
+
+        /**
+          *  @brief Disovery of resources
+          *
+          *  @param address 	mutlicast or unicast address using RCSAddress class
+          *  @param cb 			Callback to which discovered resources are notified
+          *  @param uri 		Uri to discover. If null, do not include uri in discovery
+          *  @param type        Resource type used as discovery filter
+          *
+          *  @return Pointer to the discovery task.
+          */
+        RCSDiscoveryManager::DiscoveryTask::Ptr discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
+            RCSAddress address = RCSAddress::multicast(), std::string uri = std::string(""),
+            std::string type = std::string(""));
+
+        /**
+          *  @brief Disovery of resources
+          *
+          *  @param address 	mutlicast or unicast address using RCSAddress class
+          *  @param cb 			Callback to which discovered resources are notified
+          *  @param uri 		Uri to discover. If null, do not include uri in discovery
+          *  @param types       Resources types used as discovery filter
+          *
+          *  @return Pointer to the discovery task.
+          */
+        RCSDiscoveryManager::DiscoveryTask::Ptr discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
+            std::vector<std::string> &types, RCSAddress address = RCSAddress::multicast(), std::string uri = std::string(""));
+
+
         /**
           * @brief Looks up the list of known resources type
           *
@@ -335,7 +372,7 @@ namespace OIC { namespace Service
           *
           * @return True if the type is found, false otherwise.
           */
-        bool isResourceLegit(OCResource::Ptr resource);
+        bool isResourceLegit(RCSRemoteResourceObject::Ptr resource);
 
         /**
          * @brief getRequest CB called when a get request has been answered
