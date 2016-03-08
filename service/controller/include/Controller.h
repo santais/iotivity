@@ -243,11 +243,10 @@ namespace OIC { namespace Service
         std::unordered_map<ResourceKey, RCSRemoteResourceObject::Ptr> m_resourceList;
 
         /**
-          * Mutex when writing and reading to/from a ResourceHosting
+          * Mutex locking a discovered resource until it has been added to the map.
           */
         std::mutex m_resourceMutex;
         std::condition_variable m_cond;
-
 
         /**
           * DiscoveryTask used to cancel and observe the discovery process.
@@ -256,20 +255,23 @@ namespace OIC { namespace Service
         RCSDiscoveryManager::ResourceDiscoveredCallback m_discoverCallback;
 
         /**
-          *
+          * Boolean to indicate if the RD is started already
           */
-        DiscoveryManager m_discoveryManager;
+        bool m_RDStarted;
 
         /**
-          * Timer used for monitoring
-          */
-         ExpiryTimer m_discoveryTimer;
-         unsigned int m_discoveryTimerHandler;
+         * @brief m_sceneCollection
+         * Collection of the scene. In this case the office
+         */
+        SceneCollection::Ptr m_sceneCollection;
 
-         /**
-           * Boolean to indicate if the RD is started already
-           */
-         bool m_RDStarted;
+        /**
+         * @brief m_sceneStart
+         * Scene environments with the specified actions for each individual resource
+         */
+        Scene::Ptr m_sceneStart;
+        Scene::Ptr m_sceneStop;
+
 
 	private:
          /**
@@ -317,6 +319,14 @@ namespace OIC { namespace Service
          */
         void getAttributesCallback(const RCSResourceAttributes& attr, int eCode);
 
+        /**
+         * @brief printAttributes Prints the attributes of a resource
+         *
+         * @param attr          Attributes to be printed
+         */
+        void printAttributes(const RCSResourceAttributes& attr);
+
+
 		/**
 		  * Sets the device information
 		  *
@@ -353,8 +363,8 @@ namespace OIC { namespace Service
           *  @return Pointer to the discovery task.
           */
         RCSDiscoveryManager::DiscoveryTask::Ptr discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
-            RCSAddress address = RCSAddress::multicast(), std::string uri = std::string(""),
-            std::string type = std::string(""));
+            RCSAddress address = RCSAddress::multicast(), const std::string& uri = std::string(""),
+            const std::string& type = std::string(""));
 
         /**
           *  @brief Disovery of resources
@@ -367,8 +377,24 @@ namespace OIC { namespace Service
           *  @return Pointer to the discovery task.
           */
         RCSDiscoveryManager::DiscoveryTask::Ptr discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
-            std::vector<std::string> &types, RCSAddress address = RCSAddress::multicast(), std::string uri = std::string(""));
+            const std::vector<std::string> &types, RCSAddress address = RCSAddress::multicast(), const std::string& uri = std::string(""));
 
+
+        /**
+         * @brief getCacheUpdateCallback Callback invoked when a changed of the paramters
+         * of the resource occurs.
+         *
+         * @param attr The new attributes of the resource
+         */
+        void cacheUpdateCallback(const RCSResourceAttributes& attr);
+
+        /**
+         * @brief stateChangeCallback Callback invoked when a change in the resources'
+         * state is encountered
+         *
+         * @param state         New state of the resource
+         */
+        void stateChangeCallback(ResourceState state);
 
         /**
           * @brief Looks up the list of known resources type
@@ -378,6 +404,22 @@ namespace OIC { namespace Service
           * @return True if the type is found, false otherwise.
           */
         bool isResourceLegit(RCSRemoteResourceObject::Ptr resource);
+
+
+        /**
+         * @brief addResourceToScene Adds a resource to the two scenes
+         *
+         * @param resource THe resource to be added
+         */
+        void addResourceToScene(RCSRemoteResourceObject::Ptr resource);
+
+
+        /**
+         * @brief executeSceneCallback Cb invoked when a scene is executed
+         *
+         * @param eCode Result of the scene execution.
+         */
+        void executeSceneCallback(int eCode);
 
         /**
          * @brief getRequest CB called when a get request has been answered

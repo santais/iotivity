@@ -168,8 +168,13 @@ namespace OIC { namespace Service
 
         this->configurePlatform();
 
-        /*m_discoveryManager.setTimer(CONTROLLER_POLLING_DISCOVERY_MS);
-        m_discoveryManager.discoverResource(OC_RSRVD_WELL_KNOWN_URI, OIC_DEVICE_LIGHT, m_discoverCallback);*/
+        // Set up the scene and the collection
+        SceneList::getInstance()->setName("Office");
+        m_sceneCollection = SceneList::getInstance()->addNewSceneCollection();
+        m_sceneCollection->setName("Meeting Room");
+
+        m_sceneStart = m_sceneCollection->addNewScene("Start Conference");
+        m_sceneStop = m_sceneCollection->addNewScene("Stop Conference");
     }
 
     /**
@@ -218,22 +223,8 @@ namespace OIC { namespace Service
     {
         // Start the discoveryManager
         const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, "oic.d.fan"};
-        const std::string relativeUri = OC_RSRVD_WELL_KNOWN_URI;
-        try
-        {
-            m_discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(
-                    RCSAddress::multicast(), relativeUri, types, m_discoverCallback);
-        }
-        catch(const RCSPlatformException& e)
-        {
-             std::cout << e.what() << std::endl;
-        }
-        catch(const RCSException& e)
-        {
-            std::cout << e.what() << std::endl;
-        }
 
-        //m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
+        m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
 
         // Start the discovery manager
         return(this->startRD());
@@ -263,12 +254,6 @@ namespace OIC { namespace Service
      */
     void Controller::configurePlatform()
     {
-        /*PlatformConfig config
-        {
-            OC::ServiceType::InProc, ModeType::Both, "0.0.0.0", 0, OC::QualityOfService::NaQos
-        };
-        OCPlatform::Configure(config);*/
-
         OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
         if(result != OC_STACK_OK)
         {
@@ -330,6 +315,18 @@ namespace OIC { namespace Service
             if(m_resourceList.insert({resource->getUri() + resource->getAddress(), resource}).second)
             {
                 this->printResourceData(resource);
+                this->addResourceToScene(resource);
+
+                // Start caching the resource
+                if(!resource->isCaching())
+                {
+                    resource->startCaching(std::bind(&Controller::cacheUpdateCallback, this, std::placeholders::_1));
+                }
+
+                if(!resource->isMonitoring())
+                {
+                    resource->startMonitoring(std::bind(&Controller::stateChangeCallback, this, std::placeholders::_1));
+                }
 
                 std::cout << "Added device: " << resource->getUri() + resource->getAddress() << std::endl;
                 std::cout << "Device successfully added to the list" << std::endl;
@@ -393,24 +390,34 @@ namespace OIC { namespace Service
     {
         if (eCode == OC_STACK_OK)
         {
-            if(attr.empty())
-            {
-                std::cout << "Attributes empty" << std::endl;
-            }
-            else
-            {
-                std::cout << "\t Attributes: " << std::endl;
-
-                for (const auto& attribute : attr)
-                {
-                    std::cout << "\t\t Key: " << attribute.key() << std::endl;
-                    std::cout << "\t\t Value: " << attribute.value().toString() << std::endl;
-                }
-            }
+            this->printAttributes(attr);
         }
         else
         {
             std::cerr << "Get attributes request failed with code: " << eCode << std::endl;
+        }
+    }
+
+    /**
+     * @brief printAttributes Prints the attributes of a resource
+     *
+     * @param attr          Attributes to be printed
+     */
+    void Controller::printAttributes(const RCSResourceAttributes& attr)
+    {
+        if(attr.empty())
+        {
+            std::cout << "Attributes empty" << std::endl;
+        }
+        else
+        {
+            std::cout << "\t Attributes: " << std::endl;
+
+            for (const auto& attribute : attr)
+            {
+                std::cout << "\t\t Key: " << attribute.key() << std::endl;
+                std::cout << "\t\t Value: " << attribute.value().toString() << std::endl;
+            }
         }
     }
 
@@ -477,7 +484,7 @@ namespace OIC { namespace Service
       *  @return Pointer to the discovery task.
       */
     RCSDiscoveryManager::DiscoveryTask::Ptr Controller::discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
-        RCSAddress address, std::string uri, std::string type)
+        RCSAddress address, const std::string& uri, const std::string& type)
 
     {
         RCSDiscoveryManager::DiscoveryTask::Ptr discoveryTask;
@@ -524,22 +531,101 @@ namespace OIC { namespace Service
       *  @return Pointer to the discovery task.
       */
     RCSDiscoveryManager::DiscoveryTask::Ptr Controller::discoverResource(RCSDiscoveryManager::ResourceDiscoveredCallback cb,
-        std::vector<std::string> &types, RCSAddress address, std::string uri)
+       const std::vector<std::string> &types, RCSAddress address, const std::string& uri)
     {
         RCSDiscoveryManager::DiscoveryTask::Ptr discoveryTask;
 
-        if(uri.empty())
-        {
-            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(address, types, cb);
+        try
+            {
+            if(uri.empty())
+            {
+                discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(address, types, cb);
+            }
+            else
+            {
+                discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(address, uri, types, cb);
+            }
         }
-        else
+        catch(const RCSPlatformException& e)
         {
-            discoveryTask = RCSDiscoveryManager::getInstance()->discoverResourceByTypes(address, uri, types, cb);
+             std::cout << e.what() << std::endl;
+        }
+        catch(const RCSException& e)
+        {
+            std::cout << e.what() << std::endl;
         }
 
         return discoveryTask;
     }
 
+    /**
+     * @brief getCacheUpdateCallback Callback invoked when a changed of the paramters
+     * of the resource occurs.
+     *
+     * @param attr The new attributes of the resource
+     */
+    void Controller::cacheUpdateCallback(const RCSResourceAttributes& attr)
+    {
+        std::cout << __func__ << std::endl;
+
+        this->printAttributes(attr);
+
+        // Check if the attribute is "state" and is "on"
+        for(auto const &attribute : attr)
+        {
+            const std::string key = attribute.key();
+            const RCSResourceAttributes::Value value = attribute.value();
+            if(key == "state" && value.toString() == "true")
+            {
+                std::cout << "Button state is ON. Setting scene on" << std::endl;
+                m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+            }
+            else if(key == "state" && value.toString() == "false")
+            {
+                std::cout << "Button state is OFF. Setting scene off" << std::endl;
+                m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+            }
+        }
+    }
+
+    /**
+     * @brief stateChangeCallback Callback invoked when a change in the resources'
+     * state is encountered
+     *
+     * @param state         New state of the resource
+     */
+    void Controller::stateChangeCallback(ResourceState state)
+    {
+        std::cout << __func__ << std::endl;
+
+        // Lock mutex to ensure no resource is added to the list while erasing
+        std::lock_guard<std::mutex> lock(m_resourceMutex);
+        bool resetDiscoveryManager(false);
+
+        for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
+        {
+            ResourceState newState = iterator->second->getState();
+            if (newState == ResourceState::LOST_SIGNAL || newState == ResourceState::DESTROYED)
+            {
+
+                m_sceneStart->getSceneAction(iterator->second).reset();
+                m_sceneStop->getSceneAction(iterator->second).reset();
+
+                //delete(m_sceneStop->getSceneAction(m_resourceList(iterator)));
+
+                std::cout << "Removing resource: " << iterator->second->getUri() << std::endl;
+                m_resourceList.erase(iterator++);
+
+                // Reset discovery manager.
+                // ISSUE MP: #0001
+                resetDiscoveryManager = true;
+            }
+            else
+            {
+                iterator++;
+            }
+        }
+    }
 
     /**
       * @brief Looks up the list of known resources type
@@ -554,7 +640,11 @@ namespace OIC { namespace Service
         std::string uri = resource->getUri();
         std::vector<std::string> types = resource->getTypes();
 
-        if(uri.size() > HOSTING_TAG_SIZE)
+        if (uri == "/oic/p" || uri == "/oic/d")
+        {
+            return false;
+        }
+        else if(uri.size() > HOSTING_TAG_SIZE)
         {
             if (uri.compare(
                     uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)
@@ -573,6 +663,37 @@ namespace OIC { namespace Service
         {
             return true;
         }
+    }
+
+
+    /**
+     * @brief addResourceToScene Adds a resource to the two scenes
+     *
+     * @param resource THe resource to be added
+     */
+    void Controller::addResourceToScene(RCSRemoteResourceObject::Ptr resource)
+    {
+        // Search through the resource types
+        for(const auto& type : resource->getTypes())
+        {
+            if(type.compare(OIC_DEVICE_LIGHT) == 0)
+            {
+                m_sceneStart->addNewSceneAction(resource, "power", "on");
+                m_sceneStop->addNewSceneAction(resource, "power", "off");
+            }
+        }
+    }
+
+    /**
+     * @brief executeSceneCallback Cb invoked when a scene is executed
+     *
+     * @param eCode Result of the scene execution.
+     */
+    void Controller::executeSceneCallback(int eCode)
+    {
+        std::cout << __func__ << std::endl;
+
+        std::cout << "Result of eCode: " << eCode << std::endl;
     }
 
     /**

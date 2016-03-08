@@ -25,6 +25,8 @@
 ///
 
 #include <functional>
+#include <thread>
+#include <chrono>
 
 #include <pthread.h>
 #include <mutex>
@@ -59,7 +61,7 @@ class ButtonResource
 
 public:
     /// Access this property from a TB client
-    std::string m_power;
+    bool m_state;
     std::string m_lightUri;
     OCResourceHandle m_resourceHandle;
     OCRepresentation m_lightRep;
@@ -67,12 +69,12 @@ public:
 public:
     /// Constructor
     ButtonResource() :
-            m_power(""), m_lightUri("/a/button"), m_resourceHandle(0)
+            m_state(false), m_lightUri("/a/button"), m_resourceHandle(0)
     {
         // Initialize representation
         m_lightRep.setUri(m_lightUri);
 
-        m_lightRep.setValue("state", m_power);
+        m_lightRep.setValue("state", m_state);
     }
 
     /* Note that this does not need to be a member function: for classes you do not have
@@ -117,9 +119,9 @@ public:
     {
         try
         {
-            if (rep.getValue("state", m_power))
+            if (rep.getValue("state", m_state))
             {
-                cout << "\t\t\t\t" << "state: " << m_power << endl;
+                cout << "\t\t\t\t" << "state: " << std::boolalpha <<  m_state << endl;
             }
             else
             {
@@ -148,7 +150,7 @@ public:
     // sending out.
     OCRepresentation get()
     {
-        m_lightRep.setValue("state", m_power);
+        m_lightRep.setValue("state", m_state);
 
         return m_lightRep;
     }
@@ -310,14 +312,24 @@ int main()
         // Invoke createResource function of class light.
         myButton.createResource();
 
-        // A condition variable will free the mutex it is given, then do a non-
-        // intensive block until 'notify' is called on it.  In this case, since we
-        // don't ever call cv.notify, this should be a non-processor intensive version
-        // of while(true);
-        std::mutex blocker;
-        std::condition_variable cv;
-        std::unique_lock < std::mutex > lock(blocker);
-        cv.wait(lock);
+        while(OCProcess() == OC_STACK_OK)
+        {
+            int c = getchar();
+
+            if(c == 'y')
+            {
+                myButton.m_state = true;
+                std::cout << "Y pressed" << std::endl;
+                OCPlatform::notifyAllObservers(myButton.m_resourceHandle);
+            }
+            else if(c == 'n')
+            {
+                myButton.m_state = false;
+                std::cout << "N pressed" << std::endl;
+                OCPlatform::notifyAllObservers(myButton.m_resourceHandle);
+            }
+            sleep(0.5);
+        }
     }
     catch (OCException e)
     {
