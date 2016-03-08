@@ -84,8 +84,9 @@ namespace OIC
         RCSResourceObject::Ptr SceneCollectionResource::createResourceObject()
         {
             return RCSResourceObject::Builder(
-                        m_uri, SCENE_COLLECTION_RT, OC_RSRVD_INTERFACE_DEFAULT).
+                        m_uri, SCENE_COLLECTION_RT, BASELINE_IF).
                         addInterface(OC::BATCH_INTERFACE).
+                        addInterface(LINK_BATCH).
                         setDiscoverable(true).setObservable(false).build();
         }
 
@@ -131,7 +132,7 @@ namespace OIC
             }
             else
             {
-                throw std::exception();
+                throw RCSInvalidParameterException("Scene name is duplicate!");
             }
         }
 
@@ -148,7 +149,7 @@ namespace OIC
 
             if (foundmember != m_sceneMembers.end())
             {
-                throw std::exception();
+                throw RCSBadRequestException("It is already registered member.");
             }
 
             m_sceneMembers.push_back(newMember);
@@ -345,9 +346,9 @@ namespace OIC
             auto requestKey = attributes.at(SCENE_KEY_LAST_SCENE).get<std::string>();
 
             RCSRequest req(request.getResourceObject().lock(), request.getOCRequest());
-
+  
             ptr->execute(std::string(requestKey),
-                    [& req](int /*eCode*/)
+                    [req](int /*eCode*/) 
                     {
                         // TODO need to set error code.
                         // and need to set specific attr' but this attr not to be apply to RCSResourceObject.
