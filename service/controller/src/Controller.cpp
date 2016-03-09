@@ -208,10 +208,9 @@ namespace OIC { namespace Service
 
     Controller::~Controller()
 	{
-        // Clear the resource list
         m_resourceList.clear();
 
-        this->stopRD();
+        this->stop();
 	}
 
     /**
@@ -259,11 +258,6 @@ namespace OIC { namespace Service
         {
             std::cerr << "Failed to initialize OIC server" << std::endl;
         }
-    }
-
-    void getRequest(const HeaderOptions&, const OCRepresentation& rep, const int eCode)
-    {
-
     }
 
     /**
@@ -612,10 +606,6 @@ namespace OIC { namespace Service
             {
                 std::cout << "Removing resource: " << iterator->second->getUri() << std::endl;
                 m_resourceList.erase(iterator++);
-
-                // Reset discovery manager.
-                // ISSUE MP: #0001
-                resetDiscoveryManager = true;
             }
             else
             {
@@ -637,11 +627,11 @@ namespace OIC { namespace Service
         std::string uri = resource->getUri();
         std::vector<std::string> types = resource->getTypes();
 
-        if (uri == "/oic/p" || uri == "/oic/d")
+        /*if (uri == "/oic/p" || uri == "/oic/d")
         {
             return false;
         }
-        else if(uri.size() > HOSTING_TAG_SIZE)
+        else*/ if(uri.size() > HOSTING_TAG_SIZE)
         {
             if (uri.compare(
                     uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)
@@ -654,7 +644,7 @@ namespace OIC { namespace Service
         else if (std::find_if(types.begin(), types.end(), [](const std::string &type) {return type == OIC_TYPE_RESOURCE_HOST;}) != types.end())
         {
             std::cout << "Resource type is Hosting. Not adding an additional monitoring state" << std::endl;
-            return true;
+            return false;
         }
         else
         {
@@ -691,81 +681,6 @@ namespace OIC { namespace Service
         std::cout << __func__ << std::endl;
 
         std::cout << "Result of eCode: " << eCode << std::endl;
-    }
-
-    /**
-     * @brief getRequest CB called when a get request has been answered
-     *
-     * @param options       Header options containing vendor specific information
-     * @param rep           Attribute representation
-     * @param eCode         Result of the get request
-     */
-    void Controller::getRequestCb(const HeaderOptions&, const OCRepresentation& rep, const int eCode)
-    {
-        // Search through the attributes
-        std::unique_ptr<OCRepPayload> payloadPtr(rep.getPayload());
-
-        OCRepPayloadValue* values = payloadPtr->values;
-
-        while(values != NULL)
-        {
-            std::cout << values->name << " value is: ";
-            switch(values->type)
-            {
-                case OCREP_PROP_INT:
-                    std::cout << values->i << std::endl;
-                break;
-                case OCREP_PROP_DOUBLE:
-                    std::cout << values->d << std::endl;
-                break;
-                case OCREP_PROP_BOOL:
-                    std::cout << std::boolalpha <<  values->b << std::endl;
-                break;
-                case OCREP_PROP_STRING:
-                    std::cout << values->str << std::endl;
-                break;
-
-            }
-            values = values->next;
-        }
-    }
-
-    /**
-     * @brief putRequestCb CB called when a put request has been answered
-     *
-     * @param options       Header options containing vendor specific information
-     * @param rep           Attribute representation
-     * @param eCode         Result of the PUT request
-     */
-    void Controller::putRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode)
-    {
-
-    }
-
-    /**
-     * @brief postRequestCB CB called when a put request has been answered
-     *
-     * @param options       Header options containing vendor specific information
-     * @param rep           Attribute representation
-     * @param eCode         Result of the POST request
-     */
-    void Controller::postRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode)
-    {
-
-    }
-
-    /**
-     * @brief putRequestCb CB called when a put request has been answered
-     *
-     * @param options       Header options containing vendor specific information
-     * @param rep           Attribute representation
-     * @param eCode         Result of the PUT request
-     * @param sequenceNum   The current number of notified calls. Used for synchronization.
-     */
-    void Controller::onObserve(const HeaderOptions& options, const OCRepresentation& rep, const int& eCode,
-                   const int& sequenceNumber)
-    {
-
     }
 
 } }

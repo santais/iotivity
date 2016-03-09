@@ -421,45 +421,6 @@ namespace OIC { namespace Service
          */
         void executeSceneCallback(int eCode);
 
-        /**
-         * @brief getRequest CB called when a get request has been answered
-         *
-         * @param options       Header options containing vendor specific information
-         * @param rep           Attribute representation
-         * @param eCode         Result of the get request
-         */
-        static void getRequestCb(const HeaderOptions&, const OCRepresentation& rep, const int eCode);
-
-        /**
-         * @brief putRequestCb CB called when a put request has been answered
-         *
-         * @param options       Header options containing vendor specific information
-         * @param rep           Attribute representation
-         * @param eCode         Result of the PUT request
-         */
-        static void putRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode);
-
-
-        /**
-         * @brief postRequestCB CB called when a put request has been answered
-         *
-         * @param options       Header options containing vendor specific information
-         * @param rep           Attribute representation
-         * @param eCode         Result of the POST request
-         */
-        static void postRequestCb(const HeaderOptions& options, const OCRepresentation& rep, const int eCode);
-
-        /**
-         * @brief putRequestCb CB called when a put request has been answered
-         *
-         * @param options       Header options containing vendor specific information
-         * @param rep           Attribute representation
-         * @param eCode         Result of the PUT request
-         * @param sequenceNum   The current number of notified calls. Used for synchronization.
-         */
-        static void onObserve(const HeaderOptions& options, const OCRepresentation& rep, const int& eCode,
-                       const int& sequenceNumber);
-
 	protected:
 
 	};
