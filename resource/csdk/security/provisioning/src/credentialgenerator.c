@@ -169,7 +169,7 @@ static char *CreateCertificatePublicJWK(const char *const *certificateChain,
         size_t offset = strlen(firstPart);
         for (size_t i = 0; i < chainLength; ++i)
         {
-            offset += snprintf(certPubJWK + offset, certPubJWKLen, "\"%s\",", certificateChain[i]);
+            offset += sprintf(certPubJWK + offset, "\"%s\",", certificateChain[i]);
         }
         sprintf(certPubJWK + offset - 1, secondPart);
     }
@@ -195,12 +195,12 @@ static char *CreateCertificatePrivateJWK(const char *privateKey)
     }
     const char firstPart[] = "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"";
     const char secondPart[] = "\"}";
-    size_t len = strlen(firstPart) + strlen(secondPart) + strlen(privateKey) + 1;
-    char *certPrivJWK = (char *)OICMalloc(len);
+    char *certPrivJWK = (char *)OICMalloc(strlen(firstPart) + strlen(secondPart) + strlen(
+            privateKey) + 1);
 
     if (NULL != certPrivJWK)
     {
-        snprintf(certPrivJWK, len, "%s%s%s", firstPart, privateKey, secondPart);
+        sprintf(certPrivJWK, "%s%s%s", firstPart, privateKey, secondPart);
     }
     else
     {

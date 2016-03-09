@@ -466,7 +466,7 @@ void *input_function(void * /*data*/)
     cbData.context = (void *)DEFAULT_CONTEXT_VALUE;
     cbData.cd = NULL;
 
-    strncpy(szQueryUri, MULTICAST_DISCOVERY_QUERY, sizeof(szQueryUri));
+    strcpy(szQueryUri, MULTICAST_DISCOVERY_QUERY);
 
     while (1)
     {
@@ -478,11 +478,7 @@ void *input_function(void * /*data*/)
                 if (isUpdated == false)
                 {
                     OIC_LOG(INFO, TAG, "isUpdated is false...");
-                    if (OCDoResource(&handle, OC_REST_DISCOVER, szQueryUri, 0, 0, CT_DEFAULT,
-                                     OC_LOW_QOS, &cbData, NULL, 0) != OC_STACK_OK)
-                    {
-                        OIC_LOG(ERROR, TAG, "OCDoResource error");
-                    }
+                    OCDoResource(&handle, OC_REST_DISCOVER, szQueryUri, 0, 0, CT_DEFAULT, OC_LOW_QOS, &cbData, NULL, 0);
 
                 }
                 break;
