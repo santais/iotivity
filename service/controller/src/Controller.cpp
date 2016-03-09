@@ -221,9 +221,9 @@ namespace OIC { namespace Service
     OCStackResult Controller::start()
     {
         // Start the discoveryManager
-        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, "oic.d.fan"};
+        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, OIC_DEVICE_SENSOR};
 
-        m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
+        m_discoveryTask = Controller::discoverResource(m_discoverCallback);//, types);
 
         // Start the discovery manager
         return(this->startRD());
@@ -627,11 +627,11 @@ namespace OIC { namespace Service
         std::string uri = resource->getUri();
         std::vector<std::string> types = resource->getTypes();
 
-        /*if (uri == "/oic/p" || uri == "/oic/d")
+        if (uri == "/oic/p" || uri == "/oic/d")
         {
             return false;
         }
-        else*/ if(uri.size() > HOSTING_TAG_SIZE)
+        else if(uri.size() > HOSTING_TAG_SIZE)
         {
             if (uri.compare(
                     uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)
