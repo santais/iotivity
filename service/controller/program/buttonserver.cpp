@@ -32,12 +32,17 @@
 #include <mutex>
 #include <condition_variable>
 
+// RPi GPIO Library
+#include <wiringPi.h>
+
 #include "OCPlatform.h"
 #include "OCApi.h"
 
 using namespace OC;
 using namespace std;
 namespace PH = std::placeholders;
+
+const int BUTTON_PIN = 15;
 
 int gObservation = 0;
 bool gUnderObservation = false;
@@ -308,16 +313,16 @@ void * checkButtonInput(void * param)
 {
     ButtonResource* buttonPtr = (ButtonResource*) param;
     static bool prevValue = false;
-
+    std::cout << "Starting Button Input Thread" << std::endl;
     for(;;)
     {
         if(gUnderObservation)
         {
             OCStackResult result = OC_STACK_OK;
-            //bool newValue = digitalRead(5);
-            bool newValue = true;
+            bool newValue = digitalRead(BUTTON_PIN);
             if(newValue != prevValue)
             {
+		std::cout << "Button state changed" << std::endl;
                 result = OCPlatform::notifyAllObservers(buttonPtr->getHandle());
                 prevValue = newValue;
             }
@@ -327,6 +332,7 @@ void * checkButtonInput(void * param)
                 gUnderObservation = false;
             }
         }
+	sleep(1);
     }
 
     return NULL;
@@ -350,6 +356,10 @@ int main()
 
         // Invoke createResource function of class light.
         myButton.createResource();
+
+        // Setup the pins of the button
+ 	wiringPiSetup();
+        pinMode(BUTTON_PIN, INPUT);
 
         // Start input button resource
         pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
