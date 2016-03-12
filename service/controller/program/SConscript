@@ -40,6 +40,7 @@ controller_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/inc
 controller_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/src/common/primitiveResource/include'])
 controller_program_env.AppendUnique(CPPPATH = ['../../resource-encapsulation/src/common/expiryTimer/include'])
 controller_program_env.AppendUnique(CPPPATH = ['../../resource-hosting/src'])
+controller_program_env.AppendUnique(CPPPATH = ['../../scene-manager/include'])
 
 # RD
 controller_program_env.AppendUnique(CPPPATH = ['../../resource-directory/include'])
@@ -48,6 +49,7 @@ controller_program_env.AppendUnique(CPPPATH = ['../../resource-directory/include
 controller_program_env.AppendUnique(CPPPATH = ['../../rich-server/include'])
 
 controller_program_env.AppendUnique(LIBS = [
+    'scene_manager',
     'resource_hosting',
     'rcs_client',
     'rcs_server',
@@ -59,8 +61,7 @@ controller_program_env.AppendUnique(LIBS = [
     'oc_logger',
     'connectivity_abstraction',
     'coap',
-    'pthread',
-    'wiringPi'
+    'pthread'
     ])
 
 if env.get('SECURED') == '1':
@@ -74,6 +75,10 @@ if 'rt' in controller_program_env.get('LIBS'):
 ######################################################################
 
 ControllerMain = controller_program_env.Program('controller_main', 'main.cpp')
+ControllerMain = controller_program_env.Program('buttonServer', 'buttonserver.cpp')
+ControllerMain = controller_program_env.Program('lightServer', 'lightserver.cpp')
+ControllerMain = controller_program_env.Program('fanServer', 'fanserver.cpp')
+
 
 controller_program_env.InstallTarget(ControllerMain, 'controller_main')
 
