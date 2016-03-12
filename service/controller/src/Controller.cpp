@@ -242,6 +242,14 @@ namespace OIC { namespace Service
             m_discoveryTask->cancel();
         }
 
+        /*for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
+        {
+            if(iterator->second->isCaching())
+                iterator->second->stopCaching();
+            if(iterator->second->isMonitoring())
+                iterator->second->stopMonitoring();
+        }*/
+
         // DEBUG. TODO: Remove
         std::cout << "Number of resources instance discovered by stop() call: " << m_resourceList.size() << std::endl;
 
@@ -253,11 +261,22 @@ namespace OIC { namespace Service
      */
     void Controller::configurePlatform()
     {
-        OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
+        // Create PlatformConfig object
+        PlatformConfig cfg {
+            OC::ServiceType::InProc,
+            OC::ModeType::Both,
+            "0.0.0.0", // By setting to "0.0.0.0", it binds to all available interfaces
+            0,         // Uses randomly available port
+            OC::QualityOfService::LowQos
+        };
+
+        OCPlatform::Configure(cfg);
+
+        /*OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
         if(result != OC_STACK_OK)
         {
             std::cerr << "Failed to initialize OIC server" << std::endl;
-        }
+        }*/
     }
 
     /**
@@ -284,14 +303,13 @@ namespace OIC { namespace Service
         {
             std::cout << "\t\t interface " << interface << std::endl;
         }
-
         // DEBUG
         // Get the attibutes.
-        if(this->isResourceLegit(resource))
+        /*if(this->isResourceLegit(resource))
         {
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
                                                     std::placeholders::_2));
-        }
+        }*/
     }
 
 

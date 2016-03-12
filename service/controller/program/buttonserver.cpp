@@ -40,6 +40,8 @@ using namespace std;
 namespace PH = std::placeholders;
 
 int gObservation = 0;
+bool gUnderObservation = false;
+pthread_t buttonInputThread;
 void * ChangeLightRepresentation(void *param);
 void * handleSlowResponse(void *param, std::shared_ptr< OCResourceRequest > pRequest);
 
@@ -262,6 +264,15 @@ private:
                     // DELETE request operations
                 }
             }
+            if (requestFlag & RequestHandlerFlag::ObserverFlag)
+            {
+                ObservationInfo observationInfo = request->getObservationInfo();
+                if(ObserveAction::ObserveRegister == observationInfo.action)
+                {
+                    gUnderObservation = true;
+                }
+                cout << "\t\trequestFlag : Observer\n";
+            }
         }
         else
         {
@@ -293,6 +304,34 @@ void * handleSlowResponse(void *param, std::shared_ptr< OCResourceRequest > pReq
     return NULL;
 }
 
+void * checkButtonInput(void * param)
+{
+    ButtonResource* buttonPtr = (ButtonResource*) param;
+    static bool prevValue = false;
+
+    for(;;)
+    {
+        if(gUnderObservation)
+        {
+            OCStackResult result = OC_STACK_OK;
+            //bool newValue = digitalRead(5);
+            bool newValue = true;
+            if(newValue != prevValue)
+            {
+                result = OCPlatform::notifyAllObservers(buttonPtr->getHandle());
+                prevValue = newValue;
+            }
+
+            if(OC_STACK_NO_OBSERVERS == result)
+            {
+                gUnderObservation = false;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 int main()
 {
     // Create PlatformConfig object
@@ -311,6 +350,10 @@ int main()
 
         // Invoke createResource function of class light.
         myButton.createResource();
+
+        // Start input button resource
+        pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
+        std::coutt << "Test" << std::endl;
 
         while(OCProcess() == OC_STACK_OK)
         {
