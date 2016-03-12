@@ -251,6 +251,14 @@ namespace OIC { namespace Service
                 iterator->second->stopMonitoring();
         }*/
 
+        /*for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
+        {
+            if(iterator->second->isCaching())
+                iterator->second->stopCaching();
+            if(iterator->second->isMonitoring())
+                iterator->second->stopMonitoring();
+        }*/
+
         // DEBUG. TODO: Remove
         std::cout << "Number of resources instance discovered by stop() call: " << m_resourceList.size() << std::endl;
 
@@ -262,6 +270,8 @@ namespace OIC { namespace Service
      */
     void Controller::configurePlatform()
     {
+        /*OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
+
         // Create PlatformConfig object
         PlatformConfig cfg {
             OC::ServiceType::InProc,
@@ -273,11 +283,10 @@ namespace OIC { namespace Service
 
         OCPlatform::Configure(cfg);
 
-        /*OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
         if(result != OC_STACK_OK)
         {
             std::cerr << "Failed to initialize OIC server" << std::endl;
-        }*/
+        }
     }
 
     /**
@@ -304,13 +313,13 @@ namespace OIC { namespace Service
         {
             std::cout << "\t\t interface " << interface << std::endl;
         }
-        // DEBUG
-        // Get the attibutes.
+
         /*if(this->isResourceLegit(resource))
         {
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
                                                     std::placeholders::_2));
         }*/
+        return OC_STACK_OK;
     }
 
 
@@ -625,6 +634,7 @@ namespace OIC { namespace Service
         // Lock mutex to ensure no resource is added to the list while erasing
         std::lock_guard<std::mutex> lock(m_resourceMutex);
         //bool resetDiscoveryManager(false);
+
 
         for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
         {

@@ -59,7 +59,8 @@ controller_program_env.AppendUnique(LIBS = [
     'oc_logger',
     'connectivity_abstraction',
     'coap',
-    'pthread'
+    'pthread',
+    'wiringPi'
     ])
 
 if env.get('SECURED') == '1':

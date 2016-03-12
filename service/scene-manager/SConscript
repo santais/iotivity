@@ -104,5 +104,6 @@ scenemanager_env.UserInstallTargetHeader('include/RemoteSceneAction.h', 'service
 #if target_os == 'linux':
    # SConscript('unittests/SConscript')
 
+
 # Go to build sample apps
 SConscript('sampleapp/SConscript')

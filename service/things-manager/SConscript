@@ -75,6 +75,6 @@ SConscript('sampleapp/SConscript')
 ######################################################################
 # Build UnitTests Things Manager
 ################################################ ######################
-if target_os == 'linux':
-    SConscript('unittests/SConscript')
+#if target_os == 'linux':
+#    SConscript('unittests/SConscript')
 
