@@ -28,7 +28,7 @@ target_os = env.get('TARGET_OS')
 
 if target_os not in ['arduino','darwin', 'ios']:
     # Build things manager project
-    SConscript('things-manager/SConscript')
+    #SConscript('things-manager/SConscript')
 
     # Build Rich Server
     #SConscript('rich-server/SConscript')
@@ -42,7 +42,6 @@ if target_os not in ['arduino','darwin', 'ios']:
     # Build resource-encapsulation project
     SConscript('resource-encapsulation/SConscript')
 
-<<<<<<< Updated upstream
     # Build resource-container project
     #SConscript('resource-container/SConscript')
 
@@ -53,19 +52,14 @@ if target_os not in ['arduino','darwin', 'ios']:
     # Build simulator module
     #if target_os in ['linux'] and env.get('SIMULATOR', False):
     #    SConscript('simulator/SConscript')
-=======
-<<<<<<< Updated upstream
-    # Build resource-container project    
-    SConscript('resource-container/SConscript')
-=======
+
     # Build resource-container project
     #SConscript('resource-container/SConscript')
->>>>>>> Stashed changes
 
     # Build simulator module
     #if target_os in ['linux'] and env.get('SIMULATOR', False):
      #   SConscript('simulator/SConscript')
->>>>>>> Stashed changes
+
 
     # Build resource directory project
     if env.get('WITH_RD') == '1':
