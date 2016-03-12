@@ -1304,3 +1304,7 @@ service/scene-manager/include/Scene.h
 service/scene-manager/include/SceneAction.h
 service/scene-manager/include/SceneCollection.h
 service/scene-manager/include/SceneList.h
+resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/OCBaseResource.cpp
+resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/lightServer.cpp
+resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/buttonServer.cpp
+resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/temperatureServer.cpp

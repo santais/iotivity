@@ -11,7 +11,7 @@
 ** Date: 06/01/16
 ** -------------------------------------------------------------------------*/
 
-#include "../include/OCBaseResource.h"
+#include "ocbaseresource.h"
 
 /*********** CONSTANT VARIABLES ****************/
 static const int URI_MAXSIZE = 19;
@@ -34,27 +34,13 @@ OCEntityHandlerResult OCEntityHandlerCbNew(OCEntityHandlerFlag flag, OCEntityHan
     OCEntityHandlerResult ehResult = OC_EH_OK;
     OCEntityHandlerResponse response = { 0, 0, OC_EH_ERROR, 0, 0, { },{ 0 }, false };
     OCBaseResourceT *resource = (OCBaseResourceT*) callbackParam;
-    OCRepPayload *payload = NULL;
-
-    // TODO: Find a better solution
-    /*numOfResources++;
-    if(numOfResources > MAX_NUM_OF_RESOURCES)
-        OCStopMulticastServer();*/
+    OCRepPayload* payload = NULL;
 
     // Check the request type
     if(entityHandlerRequest && (flag & OC_REQUEST_FLAG))
     {
-        ehResult = requestHandler(&response, entityHandlerRequest, resource, &payload);
-    }
-    else if (entityHandlerRequest && (flag & OC_OBSERVE_FLAG))
-    {
-        OIC_LOG(DEBUG, TAG, "Observer flag");
-        ehResult = observerHandler(entityHandlerRequest, resource);
-    }
-    else
-    {
-        OIC_LOG(ERROR, TAG, "Unknown flag type");
-        return OC_EH_ERROR;
+        OCRepPayloadDestroy(payload);
+        ehResult = requestHandler(entityHandlerRequest, resource, &payload);
     }
 
     if(ehResult == OC_EH_ERROR)
@@ -74,6 +60,14 @@ OCEntityHandlerResult OCEntityHandlerCbNew(OCEntityHandlerFlag flag, OCEntityHan
     {
         OIC_LOG(ERROR, TAG, "ERROR Sending the response");
     }
+
+    if (entityHandlerRequest && (flag & OC_OBSERVE_FLAG))
+    {
+        OIC_LOG(DEBUG, TAG, "Observer flag");
+        ehResult = observerHandler(entityHandlerRequest, resource);
+    }
+
+    OCRepPayloadDestroy(payload);
 
     return ehResult;
 }
@@ -142,7 +136,6 @@ OCBaseResourceT * createResource(char* uri, OCResourceType* type, OCResourceInte
 
     resource->attribute = NULL;
     resource->next = NULL;
-
     OCStackResult res = OCCreateResource(&resource->handle,
             resource->type->resourcetypename,
             resource->interface->name,
@@ -150,7 +143,7 @@ OCBaseResourceT * createResource(char* uri, OCResourceType* type, OCResourceInte
             OCEntityHandlerCbNew,
             resource,
             resource->resourceProperties);
-    OIC_LOG_V(INFO, TAG, "Create resource result: %s", getOCStackResult(res));
+    OIC_LOG_V(DEBUG, TAG, "Created resource with OCStackResult: %s", res);
 
     // Add types
     OCResourceType *currentType = resource->type->next;
@@ -337,7 +330,7 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
 {
     // Create new node and assign it a memory address
     OCAttributeT *new_node = (OCAttributeT*)calloc(1, sizeof(OCAttributeT));
-    new_node->value.data = (Value*)malloc(sizeof(attribute->value.data) * sizeof(Value));
+    new_node->value.data.str = (char*)malloc(sizeof(attribute->value.data.str));
 
     if(*head == NULL)
     {
@@ -354,7 +347,7 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
     }
 
     memcpy(new_node, attribute, sizeof(OCAttributeT));
-    memcpy(new_node->value.data, attribute->value.data, sizeof(attribute->value.data) * sizeof(Value));
+    memcpy(&new_node->value, &attribute->value, sizeof(attribute->value));
     new_node->next = NULL;
     // If a port has been declared, initialize it and copy the memory
     if(port)
@@ -379,13 +372,13 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
  * @param value         Value of the attribute
  * @param type          DataTypes type of the attribute
  */
-void addAttribute(OCAttributeT **head, char *name, Value value, DataTypes type, OCIOPort *port)
+void addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType type, OCIOPort *port)
 {
     OCAttributeT *attribute = (OCAttributeT*)malloc(sizeof(OCAttributeT));
 
     attribute->port = port;
     attribute->name = name;
-    attribute->value.type = type;
+    attribute->value.dataType = type;
     attribute->value.data = value;
     attribute->next = NULL;
 
@@ -414,6 +407,7 @@ void printResourceData(OCBaseResourceT *resource)
 {
     OIC_LOG(DEBUG, TAG, "=============================");
     OIC_LOG_V(DEBUG, TAG, "Resource URI: %s", resource->uri);
+    OIC_LOG_V(DEBUG, TAG, "Handle of the resource: %p", (void*) resource->handle);
 
     OIC_LOG(DEBUG, TAG, "Resource Types: ");
     OCResourceType *currentType = resource->type;
@@ -447,23 +441,25 @@ void printAttributes(OCAttributeT *attributes)
     while(current != NULL)
     {
         OIC_LOG_V(DEBUG, TAG, "Name: %s", current->name);
-        switch(current->value.type)
+        switch(current->value.dataType)
         {
         case INT:
-            OIC_LOG_V(DEBUG, TAG, "Value: %i", *((int*)current->value.data));
+            OIC_LOG_V(DEBUG, TAG, "Value: %i", current->value.data.i);
+            //OIC_LOG_V(DEBUG, TAG, "Value: %i", *((int*)current->value.data));
             break;
         case DOUBLE:
-             OIC_LOG_V(DEBUG, TAG, "Value: %f", *((double*)current->value.data));
+            OIC_LOG_V(DEBUG, TAG, "Value: %f", current->value.data.d);
+            //OIC_LOG_V(DEBUG, TAG, "Value: %f", *((double*)current->value.data));
             break;
             break;
         case BOOL:
-        {
-             bool boolean = *((bool*) current->value.data);
-             OIC_LOG_V(DEBUG, TAG, "Value: %s", boolean ? "true" : "false");
-        }
+            OIC_LOG_V(DEBUG, TAG, "Value: %s", current->value.data.b ? "true" : "false");
+           /* bool boolean = *((bool*) current->value.data);
+            OIC_LOG_V(DEBUG, TAG, "Value: %s", boolean ? "true" : "false");*/
             break;
         case STRING:
-             OIC_LOG_V(DEBUG, TAG, "Value: %s", *((char**)current->value.data));
+            OIC_LOG_V(DEBUG, TAG, "Value: %s", current->value.data.str);
+            //OIC_LOG_V(DEBUG, TAG, "Value: %s", *((char**)current->value.data));
             break;
         }
         current = current->next;
@@ -478,6 +474,7 @@ void printAttributes(OCAttributeT *attributes)
  */
  OCRepPayload *getPayload(OCEntityHandlerRequest *ehRequest, OCBaseResourceT *resource)
  {
+     OIC_LOG(DEBUG, TAG, "Getting Payload");
      if(ehRequest->payload && ehRequest->payload->type != PAYLOAD_TYPE_REPRESENTATION)
      {
          OIC_LOG(ERROR, TAG, "Incoming payload not a representation");
@@ -493,7 +490,7 @@ void printAttributes(OCAttributeT *attributes)
     }
 
     OCRepPayloadSetUri(payload, resource->uri);
-    OCRepPayloadSetPropString(payload, "name", resource->name);
+    //OCRepPayloadSetPropString(payload, "name", resource->name);
 
     return payload;
  }
@@ -509,25 +506,22 @@ OCEntityHandlerResult responseHandler(OCEntityHandlerResponse *response, OCEntit
 {
   OIC_LOG(DEBUG, TAG, "Sending a response");
 
-  if(ehResult != OC_EH_ERROR)
-  {
-      response->requestHandle = entityHandlerRequest->requestHandle;
-      response->resourceHandle = entityHandlerRequest->resource;
-      response->ehResult = ehResult;
-      response->payload = (OCPayload*)payload;
-      // Indicate that response is NOT in a persistent buffer
-      response->persistentBufferFlag = 0;
-  }
-  else
-  {
-    // TODO: How to handle error.
-      OIC_LOG(ERROR, TAG, "Error in setting the payload for the response");
-  }
+  response->requestHandle = entityHandlerRequest->requestHandle;
+  response->resourceHandle = entityHandlerRequest->resource;
+  response->ehResult = ehResult;
+  response->payload = (OCPayload*)payload;
+  // Indicate that response is NOT in a persistent buffer
+  response->persistentBufferFlag = 0;
+  /*response->numSendVendorSpecificHeaderOptions = 0;
+  memset(response->sendVendorSpecificHeaderOptions, 0,
+          sizeof response->sendVendorSpecificHeaderOptions);
+  memset(response->resourceUri, 0, sizeof response->resourceUri);*/
 
   // Send the response
-  if (OCDoResponse(response) != OC_STACK_OK)
+  OCStackResult stackResult = OCDoResponse(response);
+  if (stackResult != OC_STACK_OK)
   {
-      OIC_LOG(ERROR, TAG, "Error sending response");
+      OIC_LOG_V(ERROR, TAG, "Error sending response with error code: %i", stackResult);
       return(OC_EH_ERROR);
   }
 
@@ -542,7 +536,7 @@ OCEntityHandlerResult responseHandler(OCEntityHandlerResponse *response, OCEntit
  *
  * @return the result of the request
  */
-OCEntityHandlerResult requestHandler(OCEntityHandlerResponse *response, OCEntityHandlerRequest *ehRequest,
+OCEntityHandlerResult requestHandler(OCEntityHandlerRequest *ehRequest,
                                      OCBaseResourceT *resource, OCRepPayload **payload)
 {
     OCEntityHandlerResult ehResult = OC_EH_ERROR;
@@ -597,6 +591,8 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
 {
     OCEntityHandlerResult result = OC_EH_OK;
 
+    OIC_LOG(DEBUG, TAG, "Inside observerHandler");
+
     if(OC_OBSERVE_REGISTER == ehRequest->obsInfo.action)
     {
         OIC_LOG(INFO, TAG, "Received OC_OBSERVE_REGISTER from client");
@@ -631,19 +627,19 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
     while(current != NULL)
     {
         // Check type
-        switch(current->value.type)
+        switch(current->value.dataType)
         {
         case INT:
-            OCRepPayloadSetPropInt(payload, current->name, *((int*)current->value.data));
+            OCRepPayloadSetPropInt(payload, current->name, current->value.data.i);// *((int*)current->value.data));
             break;
         case DOUBLE:
-            OCRepPayloadSetPropDouble(payload, current->name, *((double*)current->value.data));
+            OCRepPayloadSetPropDouble(payload, current->name, current->value.data.d);// *((double*)current->value.data));
             break;
         case STRING:
-            OCRepPayloadSetPropString(payload, current->name, *((char**)current->value.data));
+            OCRepPayloadSetPropString(payload, current->name, current->value.data.str);// *((char**)current->value.data));
             break;
         case BOOL:
-            OCRepPayloadSetPropBool(payload, current->name, *((bool*)current->value.data));
+            OCRepPayloadSetPropBool(payload, current->name, current->value.data.b);// *((bool*)current->value.data));
             break;
         }
 
@@ -662,12 +658,12 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
  OCEntityHandlerResult putRequest(OCEntityHandlerRequest *ehRequest, OCRepPayload* payload, OCBaseResourceT *resource)
  {
     // Set the new states
-    OCRepPayload* inputPayload = (OCRepPayload *)(ehRequest->payload);
+    OCRepPayload* inputPayload = (OCRepPayload*)(ehRequest->payload);
 
     OCAttributeT *current = resource->attribute;
     while(current != NULL)
     {
-        switch(current->value.type)
+        switch(current->value.dataType)
         {
         case INT:
         {
@@ -675,7 +671,8 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
             if(OCRepPayloadGetPropInt(inputPayload, current->name, &value))
             {
                 //OIC_LOG_V(DEBUG, TAG, "PUT: Type is int: %i", (int) value);
-                *((int*)current->value.data) = (int) value;
+                //*((int*)current->value.data) = (int) value;
+                current->value.data.i = value;
             }
             OCRepPayloadSetPropInt(payload, current->name, value);
             break;
@@ -686,7 +683,8 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
             if(OCRepPayloadGetPropDouble(inputPayload, current->name, &value))
             {
                 //OIC_LOG_V(DEBUG, TAG, "PUT: type is double: &d", value);
-                *((double*)current->value.data) = value;
+                //*((double*)current->value.data) = value;
+                current->value.data.d = value;
             }
             OCRepPayloadSetPropDouble(payload, current->name, value);
             break;
@@ -697,7 +695,8 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
             if(OCRepPayloadGetPropString(inputPayload, current->name, &value))
             {
                 //OIC_LOG_V(DEBUG, TAG, "PUT: type is string: %s", value);
-                *((char**)current->value.data) = value;
+                //*((char**)current->value.data) = value;
+                current->value.data.str = value;
             }
             OCRepPayloadSetPropString(payload, current->name, value);
         }
@@ -707,7 +706,8 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
             if(OCRepPayloadGetPropBool(inputPayload, current->name, &value))
             {
                 //OIC_LOG_V(DEBUG, TAG, "PUT: Type is bool: %s", value ? "true" : "false");
-                *((bool*)current->value.data) = value;
+                //*((bool*)current->value.data) = value;
+                current->value.data.b = value;
             }
             OCRepPayloadSetPropBool(payload, current->name, value);
             break;
@@ -721,6 +721,7 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
     // Set the output pins
     if(resource->OCIOhandler)
     {
+        OIC_LOG_V(DEBUG, TAG, "Value of underObservation is: %s", resource->underObservation ? "true" : "false");
         resource->OCIOhandler(resource->attribute, OUTPUT, resource->handle, &resource->underObservation);
     }
     else

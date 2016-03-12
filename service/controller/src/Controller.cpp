@@ -175,6 +175,7 @@ namespace OIC { namespace Service
 
         m_sceneStart = m_sceneCollection->addNewScene("Start Conference");
         m_sceneStop = m_sceneCollection->addNewScene("Stop Conference");
+        m_sceneState = SceneState::STOP_SCENE;
     }
 
     /**
@@ -221,9 +222,9 @@ namespace OIC { namespace Service
     OCStackResult Controller::start()
     {
         // Start the discoveryManager
-        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, "oic.d.fan"};
+        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, OIC_DEVICE_SENSOR};
 
-        m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
+        m_discoveryTask = Controller::discoverResource(m_discoverCallback);//, types);
 
         // Start the discovery manager
         return(this->startRD());
@@ -242,6 +243,14 @@ namespace OIC { namespace Service
             m_discoveryTask->cancel();
         }
 
+        /*for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
+        {
+            if(iterator->second->isCaching())
+                iterator->second->stopCaching();
+            if(iterator->second->isMonitoring())
+                iterator->second->stopMonitoring();
+        }*/
+
         // DEBUG. TODO: Remove
         std::cout << "Number of resources instance discovered by stop() call: " << m_resourceList.size() << std::endl;
 
@@ -253,11 +262,22 @@ namespace OIC { namespace Service
      */
     void Controller::configurePlatform()
     {
-        OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
+        // Create PlatformConfig object
+        PlatformConfig cfg {
+            OC::ServiceType::InProc,
+            OC::ModeType::Both,
+            "0.0.0.0", // By setting to "0.0.0.0", it binds to all available interfaces
+            0,         // Uses randomly available port
+            OC::QualityOfService::LowQos
+        };
+
+        OCPlatform::Configure(cfg);
+
+        /*OCStackResult result = OCInit(NULL, 0, OC_CLIENT_SERVER);
         if(result != OC_STACK_OK)
         {
             std::cerr << "Failed to initialize OIC server" << std::endl;
-        }
+        }*/
     }
 
     /**
@@ -284,14 +304,13 @@ namespace OIC { namespace Service
         {
             std::cout << "\t\t interface " << interface << std::endl;
         }
-
         // DEBUG
         // Get the attibutes.
-        if(this->isResourceLegit(resource))
+        /*if(this->isResourceLegit(resource))
         {
             resource->getRemoteAttributes(std::bind(&Controller::getAttributesCallback, this, std::placeholders::_1,
                                                     std::placeholders::_2));
-        }
+        }*/
     }
 
 
@@ -559,7 +578,7 @@ namespace OIC { namespace Service
      * @brief getCacheUpdateCallback Callback invoked when a changed of the paramters
      * of the resource occurs.
      *
-     * @param attr The new attributes of the resource
+     * @param attr The current attribute values of the resource
      */
     void Controller::cacheUpdateCallback(const RCSResourceAttributes& attr)
     {
@@ -570,17 +589,25 @@ namespace OIC { namespace Service
         // Check if the attribute is "state" and is "on"
         for(auto const &attribute : attr)
         {
+            // Simple test scenario turning on/off the LED.
             const std::string key = attribute.key();
             const RCSResourceAttributes::Value value = attribute.value();
             if(key == "state" && value.toString() == "true")
             {
-                std::cout << "\tButton state is ON. Setting scene on" << std::endl;
-                m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
-            }
-            else if(key == "state" && value.toString() == "false")
-            {
-                std::cout << "\tButton state is OFF. Setting scene off" << std::endl;
-                m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                // TODO: Find a way to distinguish a button resource.
+                //       This could potential be any resource with type "state".
+                if(m_sceneState == SceneState::START_SCENE)
+                {
+                    std::cout << "\tSetting Scene State: STOP_SCENE\n";
+                    m_sceneState = SceneState::STOP_SCENE;
+                    m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                }
+                else
+                {
+                    std::cout << "\tSetting Scene State: START_SCENE\n";
+                    m_sceneState = SceneState::START_SCENE;
+                    m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                }
             }
         }
     }
@@ -597,7 +624,7 @@ namespace OIC { namespace Service
 
         // Lock mutex to ensure no resource is added to the list while erasing
         std::lock_guard<std::mutex> lock(m_resourceMutex);
-        bool resetDiscoveryManager(false);
+        //bool resetDiscoveryManager(false);
 
         for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
         {
@@ -627,11 +654,11 @@ namespace OIC { namespace Service
         std::string uri = resource->getUri();
         std::vector<std::string> types = resource->getTypes();
 
-        /*if (uri == "/oic/p" || uri == "/oic/d")
+        if (uri == "/oic/p" || uri == "/oic/d")
         {
             return false;
         }
-        else*/ if(uri.size() > HOSTING_TAG_SIZE)
+        else if(uri.size() > HOSTING_TAG_SIZE)
         {
             if (uri.compare(
                     uri.size()-HOSTING_TAG_SIZE, HOSTING_TAG_SIZE, HOSTING_TAG) == 0)

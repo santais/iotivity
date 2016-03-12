@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 3.0.1, 2016-03-08T09:02:32. -->
+<!-- Written by QtCreator 3.0.1, 2016-03-14T11:44:50. -->
 <qtcreator>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -62,7 +62,7 @@
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
-      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">TARGET_TRANSPORT=IP TARGET_OS=linux WITH_RD=1 RELEASE=1</value>
+      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">TARGET_TRANSPORT=IP TARGET_OS=linux WITH_RD=1 RELEASE=1 SECURED=0</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.Command">scons</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.WorkingDirectory">%{buildDir}</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Custom Process Step</value>

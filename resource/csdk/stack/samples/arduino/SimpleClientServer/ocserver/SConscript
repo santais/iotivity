@@ -31,30 +31,41 @@ arduino_simplecs_env.PrependUnique(CPPPATH = [
 		'../../../../../stack/include',
 		'../../../../../stack/include/internal',
 		'../../../../../connectivity/api',
-		'../../../../../../oc_logger/include',
+		'../../../../../../oc_logger/include'
 		])
 
 arduino_simplecs_env.AppendUnique(LIBPATH = [env.get('BUILD_DIR')])
 arduino_simplecs_env.AppendUnique(CPPDEFINES = ['TB_LOG'])
 
-arduino_simplecs_env.PrependUnique(LIBS = ['octbstack', 'ocsrm', 'connectivity_abstraction','coap'])
+arduino_simplecs_env.PrependUnique(LIBS = ['octbstack', 'ocsrm', 'connectivity_abstraction', 'coap'])
 
-arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', ['ocserver.cpp', 'OCBaseResource.cpp'])
+if 'arduino_due_x' in env.get('BOARD'):
+	arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', 'lightServer.cpp')
+if 'mega' in env.get('BOARD'):
+	arduino_simplecs = arduino_simplecs_env.Program('SimpleTemperatureServer', 'temperatureServer.cpp')
 env.CreateBin('SimpleClientServer')
+env.CreateBin('SimpleTemperatureServer')
 
 i_arduino_simplecs = arduino_simplecs_env.Install(env.get('BUILD_DIR'), arduino_simplecs)
 
 #The map file is intermediate file, make sure it's removed when clean build
 arduino_simplecs_env.Clean(arduino_simplecs, 'SimpleClientServer.map')
+arduino_simplecs_env.Clean(arduino_simplecs, 'SimpleTemperatureServer.map')
 
 Alias('arduino_simplecs', i_arduino_simplecs)
 arduino_simplecs_env.AppendTarget('arduino_simplecs')
 
-arduino_simplecs_env.Default('SimpleClientServer.hex')
+if 'arduino_due_x' in env.get('BOARD'):
+	arduino_simplecs_env.Default('SimpleClientServer.hex')
+if 'mega' in env.get('BOARD'):
+	arduino_simplecs_env.Default('SimpleTemperatureServer.hex')
 
 if(arduino_simplecs_env['UPLOAD'] == True):
 	from sys import platform as _platform
 	if _platform == "linux" or _platform == "linux2":
-		arduino_simplecs_env.Upload(env.get('BUILD_DIR') + '/resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/SimpleClientServer.hex')
+		if 'arduino_due_x' in env.get('BOARD'):
+			arduino_simplecs_env.Upload(env.get('BUILD_DIR') + '/resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/SimpleClientServer.hex')
+		if 'mega' in env.get('BOARD'):
+			arduino_simplecs_env.Upload(env.get('BUILD_DIR') + '/resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/SimpleTemperatureServer.hex')
 	else:
 		print 'Please use appropriate install method for your developing machine. Linux is the only supported platform right now.'

@@ -481,6 +481,8 @@ static int InputCRL(OicSecCrl_t *crlRes)
 int main()
 {
     OCStackResult res = OC_STACK_OK;
+    OCProvisionDev_t* pDeviceList = NULL;
+    OCProvisionDev_t *pOwnedList = NULL;
 
     // Initialize Persistent Storage for SVR database
     OCPersistentStorage ps = { .open = client_fopen,
@@ -502,7 +504,6 @@ int main()
         goto error;
     }
 
-    OCProvisionDev_t* pDeviceList = NULL;
     res = OCDiscoverUnownedDevices(PREDEFINED_TIMEOUT, &pDeviceList);
     if(OC_STACK_OK != res)
     {
@@ -558,7 +559,6 @@ int main()
 
 // Credential & ACL provisioning between two devices.
 
-    OCProvisionDev_t *pOwnedList = NULL;
     OCProvisionDev_t *pOwnedDevices [MAX_OWNED_DEVICE] = {0,};
     int nOwnedDevice = 0;
 

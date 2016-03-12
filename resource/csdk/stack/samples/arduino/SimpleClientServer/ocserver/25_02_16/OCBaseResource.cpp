@@ -11,7 +11,7 @@
 ** Date: 06/01/16
 ** -------------------------------------------------------------------------*/
 
-#include "OCBaseResource.h"
+#include "../include/OCBaseResource.h"
 
 /*********** CONSTANT VARIABLES ****************/
 static const int URI_MAXSIZE = 19;
@@ -359,9 +359,11 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
     // If a port has been declared, initialize it and copy the memory
     if(port)
     {
+        OIC_LOG(DEBUG, TAG, "Setting attribute with port: ");
+        Serial.print(port->pin);
+        Serial.print("\n");
         new_node->port = (OCIOPort*)malloc(sizeof(OCIOPort));
         memcpy(new_node->port, port, sizeof(OCIOPort));
-        pinMode(new_node->port->pin, new_node->port->type);
     }
 
     OIC_LOG_V(DEBUG, TAG, "Added attribute with name: %s", (*head)->name);
