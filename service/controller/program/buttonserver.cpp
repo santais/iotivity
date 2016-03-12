@@ -353,7 +353,6 @@ int main()
 
         // Start input button resource
         pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
-        std::coutt << "Test" << std::endl;
 
         while(OCProcess() == OC_STACK_OK)
         {
