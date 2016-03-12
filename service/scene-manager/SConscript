@@ -92,7 +92,7 @@ else :
 scenemanager_env.InstallTarget(scenemanagersdk, 'libscene_manager')
 scenemanager_env.UserInstallTargetLib(scenemanagersdk, 'libscene_manager')
 scenemanager_env.UserInstallTargetHeader('include/SceneList.h', 'service/scene-manager', 'SceneList.h')
-scenemanager_env.UserInstallTargetHeader('include/SceneCollection.h', 'service/scene-manager', 'SceneCollection.h')
+scenemanager_env.UserInstallTawrgetHeader('include/SceneCollection.h', 'service/scene-manager', 'SceneCollection.h')
 scenemanager_env.UserInstallTargetHeader('include/Scene.h', 'service/scene-manager', 'Scene.h')
 scenemanager_env.UserInstallTargetHeader('include/SceneAction.h', 'service/scene-manager', 'SceneAction.h')
 scenemanager_env.UserInstallTargetHeader('include/RemoteSceneList.h', 'service/scene-manager', 'RemoteSceneList.h')
@@ -101,8 +101,8 @@ scenemanager_env.UserInstallTargetHeader('include/RemoteScene.h', 'service/scene
 scenemanager_env.UserInstallTargetHeader('include/RemoteSceneAction.h', 'service/scene-manager', 'RemoteSceneAction.h')
 
 # Go to build Unit test
-if target_os == 'linux':
-    SConscript('unittests/SConscript')
+#if target_os == 'linux':
+   # SConscript('unittests/SConscript')
 
 # Go to build sample apps
 SConscript('sampleapp/SConscript')

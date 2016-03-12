@@ -209,8 +209,8 @@ lib_env = conf2.Finish()
 ######################################################################
 # build resource container unit tests
 ######################################################################
-if target_os == 'linux':
-    SConscript('unittests/SConscript')
+#if target_os == 'linux':
+#    SConscript('unittests/SConscript')
 
 ######################################################################
 # Build Container Sample
