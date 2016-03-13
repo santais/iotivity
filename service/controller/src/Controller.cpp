@@ -175,6 +175,7 @@ namespace OIC { namespace Service
 
         m_sceneStart = m_sceneCollection->addNewScene("Start Conference");
         m_sceneStop = m_sceneCollection->addNewScene("Stop Conference");
+        m_sceneState = SceneState::STOP_SCENE;
     }
 
     /**
@@ -577,7 +578,7 @@ namespace OIC { namespace Service
      * @brief getCacheUpdateCallback Callback invoked when a changed of the paramters
      * of the resource occurs.
      *
-     * @param attr The new attributes of the resource
+     * @param attr The current attribute values of the resource
      */
     void Controller::cacheUpdateCallback(const RCSResourceAttributes& attr)
     {
@@ -588,17 +589,25 @@ namespace OIC { namespace Service
         // Check if the attribute is "state" and is "on"
         for(auto const &attribute : attr)
         {
+            // Simple test scenario turning on/off the LED.
             const std::string key = attribute.key();
             const RCSResourceAttributes::Value value = attribute.value();
             if(key == "state" && value.toString() == "true")
             {
-                std::cout << "\tButton state is ON. Setting scene on" << std::endl;
-                m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
-            }
-            else if(key == "state" && value.toString() == "false")
-            {
-                std::cout << "\tButton state is OFF. Setting scene off" << std::endl;
-                m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                // TODO: Find a way to distinguish a button resource.
+                //       This could potential be any resource with type "state".
+                if(m_sceneState == SceneState::START_SCENE)
+                {
+                    std::cout << "\tSetting Scene State: STOP_SCENE\n";
+                    m_sceneState = SceneState::STOP_SCENE;
+                    m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                }
+                else
+                {
+                    std::cout << "\tSetting Scene State: START_SCENE\n";
+                    m_sceneState = SceneState::START_SCENE;
+                    m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                }
             }
         }
     }
@@ -615,7 +624,7 @@ namespace OIC { namespace Service
 
         // Lock mutex to ensure no resource is added to the list while erasing
         std::lock_guard<std::mutex> lock(m_resourceMutex);
-        bool resetDiscoveryManager(false);
+        //bool resetDiscoveryManager(false);
 
         for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
         {

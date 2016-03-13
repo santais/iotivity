@@ -59,6 +59,11 @@ namespace OIC { namespace Service
     const std::string HOSTING_TAG = "/hosting";
     const auto HOSTING_TAG_SIZE = HOSTING_TAG.size();
 
+    enum class SceneState
+    {
+        START_SCENE,
+        STOP_SCENE
+    };
 
     /**
      * @brief The DiscoveryManagerInfo class
@@ -271,6 +276,11 @@ namespace OIC { namespace Service
          */
         Scene::Ptr m_sceneStart;
         Scene::Ptr m_sceneStop;
+
+        /**
+         * @brief m_sceneState Current active scene state.
+         */
+        SceneState m_sceneState;
 
 
 	private:
