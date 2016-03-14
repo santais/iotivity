@@ -18,30 +18,28 @@
 // include directives
 
 // Do not remove the include below
-#include "Arduino.h"
 
 #ifdef ARDUINO
-#define TAG "ArduinoServer"
+  #define TAG "ArduinoServer"
+  #include "Arduino.h"
+  #ifdef ARDUINOWIFI
+  // Arduino WiFi Shield
+  #include <SPI.h>
+  #include <WiFi.h>
+  #include <WiFiUdp.h>
+  #else
+  // Arduino Ethernet Shield
+  #include <Ethernet2.h>
+  #include <EthernetServer.h>
+  #include <EthernetClient.h>
+  #include <Dhcp.h>
+  #include <Dns.h>
+  #include <EthernetUdp2.h>
+  #include <Twitter.h>
+  #include <util.h>
+  #endif
 #else
-#define TAG "OCBaseResource";
-#endif
-
-#include "Arduino.h"
-#ifdef ARDUINOWIFI
-// Arduino WiFi Shield
-#include <SPI.h>
-#include <WiFi.h>
-#include <WiFiUdp.h>
-#else
-// Arduino Ethernet Shield
-#include <Ethernet2.h>
-#include <EthernetServer.h>
-#include <EthernetClient.h>
-#include <Dhcp.h>
-#include <Dns.h>
-#include <EthernetUdp2.h>
-#include <Twitter.h>
-#include <util.h>
+  #define TAG "ocbaseresource";
 #endif
 
 #include "logger.h"
