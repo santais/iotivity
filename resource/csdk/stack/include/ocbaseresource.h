@@ -18,6 +18,8 @@
 // include directives
 
 // Do not remove the include below
+#include "Arduino.h"
+
 #ifdef ARDUINO
 #define TAG "ArduinoServer"
 #else
@@ -65,13 +67,13 @@ static OCEntityHandlerResult OCEntityHandlerCbNew(OCEntityHandlerFlag flag, OCEn
   * Data type structure to assign a type
   * to an attribute
   */
-typedef enum DataTypes
+typedef enum DataType
 {
     INT     = 0,
     DOUBLE  = (1 << 0),
     BOOL    = (2 << 0),
     STRING  = (3 << 0)
-} DataTypes;
+} DataType;
 
 /**
   * 8 bit variable declaring a port type
@@ -93,6 +95,14 @@ typedef struct OCIOPort
     uint8_t pin;
 } OCIOPort;
 
+typedef union ResourceData
+{
+    double d;
+    int i;
+    char* str;
+    bool b;
+} ResourceData;
+
 /**
   * Structure to hold the attributes for a resource. Multiple attributes
   * are allowed, linked together using a linked list
@@ -103,11 +113,12 @@ typedef struct OCAttributeT
 
     char* name;
 
-    struct value_t
+    struct ValueType
     {
-        Value data;
+        DataType dataType;
 
-        int type;
+        ResourceData data;
+
     } value;
 
     OCIOPort* port;
@@ -188,7 +199,7 @@ OCBaseResourceT * createResource(char* uri, OCResourceType* type, OCResourceInte
   *
   * @return
   */
-OCBaseResourceT * createResource(char *uri, const char* type, const char* interface, uint8_t properties,
+OCBaseResourceT * createResource(char* uri, const char* type, const char* interface, uint8_t properties,
                                  OCIOHandler outputHandler);
 
 /**
@@ -219,7 +230,7 @@ OCStackResult addType(OCBaseResourceT *resource, const char *typeName);
  * @return              OC_STACK_OK if successfully bound
  */
 OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *interface);
-OCStackResult addInterface(OCBaseResourceT *resource, const char* interfaceName);
+OCStackResult addInterface(OCBaseResourceT *resource, char* interfaceName);
 
 /**
  * @brief addAttribute  Adds an attribute to the resource
@@ -228,7 +239,7 @@ OCStackResult addInterface(OCBaseResourceT *resource, const char* interfaceName)
  * @param attribute     The attribute to be added
  */
 void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port);
-void addAttribute(OCAttributeT **head, char *name, Value value, DataTypes type,
+void addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType type,
                   OCIOPort *port);
 
 /**
@@ -263,9 +274,9 @@ OCRepPayload *getPayload(OCEntityHandlerRequest *ehRequest, OCBaseResourceT *res
  /**
   * @brief handles the response to the entity handler
   *
-  * @param response 	The entityhandler response
+  * @param response   The entityhandler response
   * @param EntityHandlerRequest
-  * @param resource 	The base resource attributes
+  * @param resource   The base resource attributes
   *
   * @parma result of the entityhandler;
   */
@@ -274,12 +285,12 @@ OCEntityHandlerResult responseHandler(OCEntityHandlerResponse *response, OCEntit
  /**
   * @brief Handles what request was instantiated and the corrensponding action
   *
-  * @param handler 	The EntityHandler
-  * @param resource 	Base resource
+  * @param handler  The EntityHandler
+  * @param resource   Base resource
   *
   * @return the result of the request
   */
-OCEntityHandlerResult requestHandler(OCEntityHandlerResponse *response, OCEntityHandlerRequest *ehRequest,
+OCEntityHandlerResult requestHandler(OCEntityHandlerRequest *ehRequest,
                                       OCBaseResourceT *resource, OCRepPayload **payload);
 
 /**

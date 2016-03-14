@@ -136,7 +136,8 @@ liboctbstack_src = [
 	OCTBSTACK_SRC + 'ocserverrequest.c',
 	OCTBSTACK_SRC + 'occollection.c',
 	OCTBSTACK_SRC + 'oicgroup.c',
-	OCTBSTACK_SRC + "rdpayload.c"
+	OCTBSTACK_SRC + "rdpayload.c",
+	OCTBSTACK_SRC + "ocbaseresource.c"
 	]
 
 if with_tcp == True:
@@ -150,6 +151,7 @@ if target_os in ['arduino','darwin','ios'] :
 	liboctbstack_env.UserInstallTargetLib(static_liboctbstack, 'liboctbstack')
 	liboctbstack_env.UserInstallTargetHeader('stack/include/ocstackconfig.h', 'resource', 'ocstackconfig.h')
 	liboctbstack_env.UserInstallTargetHeader('stack/include/octypes.h', 'resource', 'octypes')
+	liboctbstack_env.UserInstallTargetHeader('stack/include/ocbaseresource.h', 'resource', 'ocbaseresource.h')
 else:
 	static_liboctbstack = liboctbstack_env.StaticLibrary('octbstack', liboctbstack_src)
 	shared_liboctbstack = liboctbstack_env.SharedLibrary('octbstack', liboctbstack_src)

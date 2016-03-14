@@ -20,26 +20,14 @@
 
 #include <malloc.h>
 
-#include "OCBaseResource.h"
+#include "ocbaseresource.h"
 #include "ResourceTypes.h"
-#include <Scheduler.h>
 
-static const int DELAY_TIME_INPUT_THREAD = 10;      // ms
-
-const char *getResult(OCStackResult result);
-
-void buttonIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle,
-                     bool *underObservation);
-void checkInputThread();
-
-
+static const int DELAY_TIME_INPUT_THREAD = 100;      // ms
 
 // Blinking LED
 static const char LED_PIN = 13;
 static const char TEST_LED_PIN = 5; // PWM Pin
-static const char TEST_BUT_PIN = 2;
-
-bool buttonPrevValue = false;
 
 #define TAG "ArduinoServer"
 
@@ -130,41 +118,65 @@ void PrintArduinoMemoryStats()
    // #endif
 }
 
-void buttonIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle,
-                     bool *underObservation)
+void printAttribute(OCAttributeT *attributes)
 {
-    if(IOType == INPUT)
+    OIC_LOG(DEBUG, TAG, "Attributes :");
+    OCAttributeT *current = attributes;
+    while(current != NULL)
     {
-       // OIC_LOG(DEBUG, TAG, "ButtonIOHandler: INPUT");
-        bool readValue(false);
-        if(digitalRead(attribute->port->pin))
+        OIC_LOG_V(DEBUG, TAG, "Name: %s", current->name);
+        switch(current->value.dataType)
         {
-            readValue = true;
+        case INT:
+            OIC_LOG_V(DEBUG, TAG, "Value: %i", current->value.data.i);
+            //OIC_LOG_V(DEBUG, TAG, "Value: %i", *((int*)current->value.data));
+            break;
+        case DOUBLE:
+            OIC_LOG_V(DEBUG, TAG, "Value: %f", current->value.data.d);
+            //OIC_LOG_V(DEBUG, TAG, "Value: %f", *((double*)current->value.data));
+            break;
+            break;
+        case BOOL:
+            OIC_LOG_V(DEBUG, TAG, "Value: %s", current->value.data.b ? "true" : "false");
+           /* bool boolean = *((bool*) current->value.data);
+            OIC_LOG_V(DEBUG, TAG, "Value: %s", boolean ? "true" : "false");*/
+            break;
+        case STRING:
+            OIC_LOG_V(DEBUG, TAG, "Value: %s", current->value.data.str);
+            //OIC_LOG_V(DEBUG, TAG, "Value: %s", *((char**)current->value.data));
+            break;
         }
-        else
-        {
-            readValue = false;
-        }
-
-        if(attribute)
-        {
-            *((bool*)attribute->value.data) = readValue;
-        }
-
-        // Check if it's being observed
-        if(*underObservation && buttonPrevValue != readValue)
-        {
-            OIC_LOG_V(DEBUG, TAG, "Notifying with handle: %p", (void*) handle);
-            OCStackResult res = OCNotifyAllObservers(handle, OC_MEDIUM_QOS);
-            OIC_LOG_V(DEBUG, TAG, "Observer result is: %s", getOCStackResult(res));
-        }
-        buttonPrevValue = readValue;
+        current = current->next;
     }
-    else
-    {
-        OIC_LOG(ERROR, TAG, "BUTTON is read only!");
-    }
+    OIC_LOG(DEBUG, TAG, "Done printing attributes!");
 }
+
+void printResource(OCBaseResourceT *resource)
+{
+    OIC_LOG(DEBUG, TAG, "=============================");
+    OIC_LOG_V(DEBUG, TAG, "Resource URI: %s", resource->uri);
+    OIC_LOG_V(DEBUG, TAG, "Handle of the resource: %p", (void*) resource->handle);
+
+    OIC_LOG(DEBUG, TAG, "Resource Types: ");
+    OCResourceType *currentType = resource->type;
+    while(currentType != NULL)
+    {
+        OIC_LOG_V(DEBUG, TAG, "\t%s", currentType->resourcetypename);
+        currentType = currentType->next;
+    }
+
+    OIC_LOG(DEBUG, TAG, "Resource Interfaces: ");
+    OCResourceInterface *currentInterface = resource->interface;
+    while(currentInterface != NULL)
+    {
+        OIC_LOG_V(DEBUG, TAG, "\t%s", currentInterface->name);
+        currentInterface = currentInterface->next;
+    }
+
+    printAttribute(resource->attribute);
+    OIC_LOG(DEBUG, TAG, "=============================");
+}
+
 
 void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle,
                     bool *underObservation)
@@ -179,7 +191,7 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
             if(strcmp(current->name, "power") == 0)
             {
 
-                char* value = *((char**) current->value.data);
+                char* value = current->value.data.str;
                 OIC_LOG_V(DEBUG, TAG, "Value received is: %s", value);
                 if(strcmp(value, "on"))
                 {
@@ -192,23 +204,10 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
 
                 if(attribute)
                 {
-                    *((char**)attribute->value.data) = value;
+                    //*((char**)attribute->value.data) = value;
+                    attribute->value.data.str = value;
                 }
-                /*uint8_t port = 5;
-                if(value >= 255)
-                {
-                    analogWrite(port, 255);
-                }
-                else if(value < 0)
-                {
-                    analogWrite(port, 0);
-                }
-                else
-                {
-                    OIC_LOG_V(DEBUG, TAG, "Value analogWrite is: %i", value);
-                    analogWrite(current->port->pin, value);
-                }*/
-                // TODO
+
                 if(*underObservation)
                 {
                     OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
@@ -222,34 +221,6 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
    // OIC_LOG(DEBUG, TAG, "Leaving light handler");
 }
 
-void checkInputThread()
-{
-    //OIC_LOG(DEBUG, TAG, "Checking input thread");
-
-    // Search through added resources
-    OCBaseResourceT *current = getResourceList();
-
-    while(current != NULL)
-    {
-        if(current->attribute->port->type == IN)
-        {
-            //OIC_LOG_V(DEBUG, TAG, "Found resource with name: %s", current->name);
-            //OIC_LOG_V(DEBUG, TAG, "checkInputThread Observation: %s", current->underObservation ? "true" : "false");
-            current->OCIOhandler(current->attribute, INPUT, current->handle, &current->underObservation);
-        }
-        current = current->next;
-    }
-
-    delay(DELAY_TIME_INPUT_THREAD);
-}
-
-void aliveThread()
-{
-    digitalWrite(LED_PIN, HIGH);
-    delay(500);
-    digitalWrite(LED_PIN, LOW);
-    delay(500);
-}
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -278,23 +249,7 @@ void setup()
     // DEBUG PIN
     pinMode(LED_PIN, OUTPUT);
 
-    // Button resource
-    /*OCBaseResourceT *buttonResource = createResource("/a/button", OIC_DEVICE_BUTTON, OC_RSRVD_INTERFACE_DEFAULT,
-                                                      (OC_DISCOVERABLE | OC_OBSERVABLE), buttonIOHandler);
-
-    buttonResource->name = "Marks Button";
-
-    OCIOPort port;
-    port.pin = TEST_BUT_PIN;
-    port.type = IN;
-
-    Value buttonValue = malloc(sizeof(bool));
-    bool boolVal = false;
-    *((bool*)buttonValue) = boolVal;
-    addAttribute(&buttonResource->attribute, "state", buttonValue, BOOL, &port);
-
-    printResourceData(buttonResource);*/
-
+    OIC_LOG(DEBUG, TAG, "Creating resource");
     // Light resource
     OCBaseResourceT *resourceLight = createResource("/a/light", OIC_DEVICE_LIGHT, OC_RSRVD_INTERFACE_DEFAULT,
                                               (OC_DISCOVERABLE | OC_OBSERVABLE), lightIOHandler);
@@ -307,41 +262,17 @@ void setup()
     portLight.pin = TEST_LED_PIN; // LED_PIN for debug
     portLight.type = OUT;
 
-    Value valueLight = malloc(sizeof(char*));
-    char* charVal = "off";
-    *((char**)valueLight) = charVal;
-    addAttribute(&resourceLight->attribute, "power", valueLight, STRING, &portLight);
+    ResourceData power;
+    power.str = "off";
+    addAttribute(&resourceLight->attribute, "power", power, STRING, &portLight);
 
-    valueLight = malloc(sizeof(int));
-    *((int*)valueLight) = 0;
-    addAttribute(&resourceLight->attribute, "brightness", valueLight, INT, &portLight);
+    ResourceData brightness;
+    brightness.i = 0;
+    addAttribute(&resourceLight->attribute, "brightness", brightness, INT, &portLight);
 
-    printResourceData(resourceLight);
+    printResource(resourceLight);
 
-    // Humidty resource
-
-    /*OCBaseResourceT *humidtyResource = createResource("/a/tempsensor/hosting", "oic.r.sensor", OC_RSRVD_INTERFACE_DEFAULT,
-                                    (OC_DISCOVERABLE | OC_OBSERVABLE), NULL);
-
-    humidtyResource->name = "Sensor";
-
-    addType(humidtyResource, "oic.r.resourcehosting");
-    addType(humidtyResource, "oic.r.sensor.humidity");
-
-    port.pin = 7;
-    port.type = IN;
-
-    value = malloc(sizeof(int));
-    *((int*)value) = 0;
-    addAttribute(&humidtyResource->attribute, "state", value, INT, &port);
-
-    printResourceData(humidtyResource);
-*/
-    // Start the thread to take for change in the input of the resources
-    //Scheduler.startLoop(checkInputThread);
-
-    // Alive LED
-    //Scheduler.startLoop(aliveThread);
+    OIC_LOG(DEBUG, TAG, "Finished setup");
 }
 
 // The loop function is called in an endless loop
@@ -349,7 +280,7 @@ void loop()
 {
     // This artificial delay is kept here to avoid endless spinning
     // of Arduino microcontroller. Modify it as per specific application needs.
-    delay(10);
+    delay(DELAY_TIME_INPUT_THREAD);
     //checkInputThread();
 
     // This call displays the amount of free SRAM available on Arduino

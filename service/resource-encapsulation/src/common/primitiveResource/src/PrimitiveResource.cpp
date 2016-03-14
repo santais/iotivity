@@ -55,7 +55,7 @@ namespace OIC
         {
             const RCSAddressDetail* addressDetail = RCSAddressDetail::getDetail(address);
 
-            discoverResource(addressDetail->getAddress(), resourceURI, OCConnectivityType{ },
+            discoverResource(addressDetail->getAddress(), resourceURI, CT_IP_USE_V4,
                     std::move(callback));
         }
 
