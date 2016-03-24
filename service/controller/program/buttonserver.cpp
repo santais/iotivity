@@ -180,7 +180,7 @@ private:
 // Entity handler can be implemented in several ways by the manufacturer
     OCEntityHandlerResult entityHandler(std::shared_ptr< OCResourceRequest > request)
     {
-        cout << "\tIn Server CPP entity handler:\n";
+        //cout << "\tIn Server CPP entity handler:\n";
         OCEntityHandlerResult ehResult = OC_EH_ERROR;
         if (request)
         {
@@ -190,7 +190,7 @@ private:
 
             if (requestFlag & RequestHandlerFlag::RequestFlag)
             {
-                cout << "\t\trequestFlag : Request\n";
+                //cout << "\t\trequestFlag : Request\n";
                 auto pResponse = std::make_shared< OC::OCResourceResponse >();
                 pResponse->setRequestHandle(request->getRequestHandle());
                 pResponse->setResourceHandle(request->getResourceHandle());
@@ -198,7 +198,7 @@ private:
                 // If the request type is GET
                 if (requestType == "GET")
                 {
-                    cout << "\t\t\trequestType : GET\n";
+                    //cout << "\t\t\trequestType : GET\n";
                     if (isSlowResponse) // Slow response case
                     {
                         static int startedThread = 0;

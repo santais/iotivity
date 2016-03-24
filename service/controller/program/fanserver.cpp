@@ -59,7 +59,7 @@ class FanResource
 
 public:
     /// Access this property from a TB client
-    std::string m_speed;
+    int m_speed;
     std::string m_fanUri;
     OCResourceHandle m_resourceHandle;
     OCRepresentation m_fanRep;
@@ -67,7 +67,7 @@ public:
 public:
     /// Constructor
     FanResource() :
-            m_speed("10"), m_fanUri("/a/fan"), m_resourceHandle(0)
+            m_speed(10), m_fanUri("/a/fan"), m_resourceHandle(0)
     {
         // Initialize representation
         m_fanRep.setUri(m_fanUri);
