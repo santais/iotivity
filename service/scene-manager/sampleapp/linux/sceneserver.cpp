@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <vector>
+#include <condition_variable>
 
 #include "OCPlatform.h"
 #include "RCSDiscoveryManager.h"
@@ -35,8 +36,11 @@ using namespace OC;
 using namespace OIC::Service;
 
 constexpr int CREATE_SCENE_LIST = 1;
+
 constexpr int CREATE_SCENE_COLLECTION = 1;
+
 constexpr int CREATE_SCENE = 1;
+
 constexpr int CREATE_SCENE_ACTION = 1;
 
 constexpr int EXECUTE_SCENE_1 = 1;

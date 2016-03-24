@@ -269,11 +269,13 @@ CAResult_t CAManagerLEClientTerminate(JNIEnv *env)
     if (g_context)
     {
         (*env)->DeleteGlobalRef(env, g_context);
+        g_context = NULL;
     }
 
     if (g_connectedDeviceSet)
     {
         (*env)->DeleteGlobalRef(env, g_connectedDeviceSet);
+        g_connectedDeviceSet = NULL;
     }
 
     return res;
@@ -502,6 +504,12 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
 
     if (GATT_SUCCESS == status)
     {
+        if (!g_connectedDeviceSet)
+        {
+            OIC_LOG(ERROR, TAG, "g_connectedDeviceSet is null");
+            return;
+        }
+
         jstring jni_address = CAManagerGetAddressFromGatt(env, gatt);
         if (!jni_address)
         {
@@ -513,6 +521,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
         if (!address)
         {
             OIC_LOG(ERROR, TAG, "address is null");
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
         OIC_LOG_V(DEBUG, TAG, "ServicesDiscovered device : %s", address);
@@ -523,13 +532,19 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
         if (!jni_cls_set)
         {
             OIC_LOG(ERROR, TAG, "jni_cls_set is null");
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
 
-        jmethodID jni_mid_iterator = (*env)->GetMethodID(env, jni_cls_set, "iterator", "()Ljava/util/Iterator;");
+        jmethodID jni_mid_iterator = (*env)->GetMethodID(env, jni_cls_set, "iterator",
+                                                            "()Ljava/util/Iterator;");
         if (!jni_mid_iterator)
         {
             OIC_LOG(ERROR, TAG, "jni_mid_iterator is null");
+            (*env)->DeleteLocalRef(env, jni_cls_set);
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
 
@@ -537,6 +552,9 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
         if (!jni_obj_iter)
         {
             OIC_LOG(ERROR, TAG, "jni_obj_iter is null");
+            (*env)->DeleteLocalRef(env, jni_cls_set);
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
 
@@ -545,6 +563,10 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
         if (!jni_cls_iterator)
         {
             OIC_LOG(ERROR, TAG, "jni_cls_iterator is null");
+            (*env)->DeleteLocalRef(env, jni_obj_iter);
+            (*env)->DeleteLocalRef(env, jni_cls_set);
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
 
@@ -552,24 +574,52 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
         if (!jni_mid_hasNext)
         {
             OIC_LOG(ERROR, TAG, "jni_mid_hasNext is null");
+            (*env)->DeleteLocalRef(env, jni_cls_iterator);
+            (*env)->DeleteLocalRef(env, jni_obj_iter);
+            (*env)->DeleteLocalRef(env, jni_cls_set);
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
 
-        jmethodID jni_mid_next = (*env)->GetMethodID(env, jni_cls_iterator, "next", "()Ljava/lang/Object;");
+        jmethodID jni_mid_next = (*env)->GetMethodID(env, jni_cls_iterator, "next",
+                                                        "()Ljava/lang/Object;");
         if (!jni_mid_next)
         {
             OIC_LOG(ERROR, TAG, "jni_mid_next is null");
+            (*env)->DeleteLocalRef(env, jni_cls_iterator);
+            (*env)->DeleteLocalRef(env, jni_obj_iter);
+            (*env)->DeleteLocalRef(env, jni_cls_set);
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->DeleteLocalRef(env, jni_address);
             return;
         }
 
         // Iterate over the entry Set
         while ((*env)->CallBooleanMethod(env, jni_obj_iter, jni_mid_hasNext))
         {
-            jstring jni_str_entry = (jstring)(*env)->CallObjectMethod(env, jni_obj_iter, jni_mid_next);
+            jstring jni_str_entry = (jstring)(*env)->CallObjectMethod(env, jni_obj_iter,
+                                                                        jni_mid_next);
+            if (!jni_str_entry)
+            {
+                OIC_LOG(ERROR, TAG, "jni_str_entry is null");
+                (*env)->DeleteLocalRef(env, jni_cls_iterator);
+                (*env)->DeleteLocalRef(env, jni_obj_iter);
+                (*env)->DeleteLocalRef(env, jni_cls_set);
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                (*env)->DeleteLocalRef(env, jni_address);
+                return;
+            }
             const char* foundAddress = (*env)->GetStringUTFChars(env, jni_str_entry, NULL);
             if (!foundAddress)
             {
                 OIC_LOG(ERROR, TAG, "addr is null");
+                (*env)->DeleteLocalRef(env, jni_str_entry);
+                (*env)->DeleteLocalRef(env, jni_cls_iterator);
+                (*env)->DeleteLocalRef(env, jni_obj_iter);
+                (*env)->DeleteLocalRef(env, jni_cls_set);
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                (*env)->DeleteLocalRef(env, jni_address);
                 return;
             }
             OIC_LOG_V(INFO, TAG, "found last connected address [%s] from SharedPreferences",
@@ -601,12 +651,12 @@ Java_org_iotivity_ca_CaLeClientInterface_caManagerLeServicesDiscoveredCallback(J
             g_connStateCB(CA_ADAPTER_GATT_BTLE, address, true);
             OIC_LOG(DEBUG, TAG, "LE Connected callback is called");
         }
+
+        (*env)->DeleteLocalRef(env, jni_cls_iterator);
+        (*env)->DeleteLocalRef(env, jni_obj_iter);
+        (*env)->DeleteLocalRef(env, jni_cls_set);
         (*env)->ReleaseStringUTFChars(env, jni_address, address);
         (*env)->DeleteLocalRef(env, jni_address);
-        (*env)->DeleteLocalRef(env, jni_cls_set);
-        (*env)->DeleteLocalRef(env, jni_obj_iter);
-        (*env)->DeleteLocalRef(env, jni_cls_iterator);
-
         OIC_LOG(INFO, TAG, "ServicesDiscovery is successful");
     }
     else

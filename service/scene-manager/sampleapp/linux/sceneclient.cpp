@@ -21,6 +21,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <condition_variable>
 
 #include "OCPlatform.h"
 #include "RCSDiscoveryManager.h"
@@ -236,7 +237,6 @@ void executeScene()
 }
 
 // --- Scene Manager Remote API sample
-
 void configurePlatform()
 {
     PlatformConfig config

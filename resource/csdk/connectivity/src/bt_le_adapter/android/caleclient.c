@@ -92,6 +92,9 @@ static ca_mutex g_deviceListMutex = NULL;
 static ca_mutex g_gattObjectMutex = NULL;
 static ca_mutex g_deviceStateListMutex = NULL;
 
+static ca_mutex g_deviceScanRetryDelayMutex = NULL;
+static ca_cond g_deviceScanRetryDelayCond = NULL;
+
 static ca_mutex g_scanMutex = NULL;
 
 static CABLEDataReceivedCallback g_CABLEClientDataReceivedCallback = NULL;
@@ -262,6 +265,7 @@ CAResult_t CALEClientInitialize()
     // init mutex for send logic
     g_threadCond = ca_cond_new();
     g_threadWriteCharacteristicCond = ca_cond_new();
+    g_deviceScanRetryDelayCond = ca_cond_new();
 
     CALEClientCreateDeviceList();
     CALEClientJNISetContext();
@@ -375,10 +379,13 @@ void CALEClientTerminate()
     ca_cond_free(g_deviceDescCond);
     ca_cond_free(g_threadCond);
     ca_cond_free(g_threadWriteCharacteristicCond);
+    ca_cond_free(g_deviceScanRetryDelayCond);
 
     g_deviceDescCond = NULL;
     g_threadCond = NULL;
     g_threadWriteCharacteristicCond = NULL;
+    g_deviceScanRetryDelayCond = NULL;
+
     g_isSignalSetFlag = false;
 
     if (isAttached)
@@ -647,6 +654,25 @@ CAResult_t CALEClientIsThereScannedDevices(JNIEnv *env, const char* address)
                     {
                       devicesDiscovered = true;
                       break;
+                    }
+                    else
+                    {
+                        if (address)
+                        {
+                            OIC_LOG(INFO, TAG, "waiting..");
+
+                            ca_mutex_lock(g_deviceScanRetryDelayMutex);
+                            if (ca_cond_wait_for(g_deviceScanRetryDelayCond,
+                                                 g_deviceScanRetryDelayMutex,
+                                                 MICROSECS_PER_SEC) == CA_WAIT_SUCCESS)
+                            {
+                                OIC_LOG(INFO, TAG, "finish to waiting for target device");
+                                ca_mutex_unlock(g_deviceScanRetryDelayMutex);
+                                break;
+                            }
+                            ca_mutex_unlock(g_deviceScanRetryDelayMutex);
+                            // time out
+                        }
                     }
                 }
             }
@@ -1025,7 +1051,7 @@ CAResult_t CALEClientSendData(JNIEnv *env, jobject device)
 
         // connection request
         jobject newGatt = CALEClientConnect(env, device,
-                                            CALEClientGetAutoConnectFlag(env, jni_address));
+                                            JNI_FALSE);
         if (NULL == newGatt)
         {
             OIC_LOG(ERROR, TAG, "CALEClientConnect has failed");
@@ -1095,7 +1121,8 @@ CAResult_t CALEClientSendData(JNIEnv *env, jobject device)
             }
 
             OIC_LOG(DEBUG, TAG, "start to connect LE");
-            jobject gatt = CALEClientConnect(env, device, JNI_TRUE);
+            jobject gatt = CALEClientConnect(env, device,
+                                             CALEClientGetAutoConnectFlag(env, jni_address));
             if (NULL == gatt)
             {
                 OIC_LOG(ERROR, TAG, "CALEClientConnect has failed");
@@ -2772,6 +2799,7 @@ CAResult_t CALEClientRemoveAllScanDevices(JNIEnv *env)
             continue;
         }
         (*env)->DeleteGlobalRef(env, jarrayObj);
+        jarrayObj = NULL;
     }
 
     OICFree(g_deviceList);
@@ -2836,6 +2864,7 @@ CAResult_t CALEClientRemoveDeviceInScanDeviceList(JNIEnv *env, jstring address)
         {
             OIC_LOG_V(DEBUG, TAG, "remove object : %s", remoteAddress);
             (*env)->DeleteGlobalRef(env, jarrayObj);
+            jarrayObj = NULL;
             (*env)->ReleaseStringUTFChars(env, jni_setAddress, setAddress);
             (*env)->ReleaseStringUTFChars(env, address, remoteAddress);
 
@@ -3026,6 +3055,7 @@ CAResult_t CALEClientRemoveAllGattObjs(JNIEnv *env)
             continue;
         }
         (*env)->DeleteGlobalRef(env, jarrayObj);
+        jarrayObj = NULL;
     }
 
     OICFree(g_gattObjectList);
@@ -3098,6 +3128,7 @@ CAResult_t CALEClientRemoveGattObj(JNIEnv *env, jobject gatt)
         {
             OIC_LOG_V(DEBUG, TAG, "remove object : %s", remoteAddress);
             (*env)->DeleteGlobalRef(env, jarrayObj);
+            jarrayObj = NULL;
             (*env)->ReleaseStringUTFChars(env, jni_setAddress, setAddress);
             (*env)->ReleaseStringUTFChars(env, jni_remoteAddress, remoteAddress);
 
@@ -3173,7 +3204,7 @@ CAResult_t CALEClientRemoveGattObjForAddr(JNIEnv *env, jstring addr)
         {
             OIC_LOG_V(DEBUG, TAG, "remove object : %s", remoteAddress);
             (*env)->DeleteGlobalRef(env, jarrayObj);
-
+            jarrayObj = NULL;
             (*env)->ReleaseStringUTFChars(env, jni_setAddress, setAddress);
             (*env)->ReleaseStringUTFChars(env, addr, remoteAddress);
             if (NULL == u_arraylist_remove(g_gattObjectList, index))
@@ -3306,7 +3337,7 @@ CAResult_t CALEClientUpdateDeviceState(const char* address, uint32_t connectedSt
 {
     VERIFY_NON_NULL(address, TAG, "address is null");
 
-    CALEState_t *newstate = (CALEState_t*) OICMalloc(sizeof(CALEState_t));
+    CALEState_t *newstate = (CALEState_t*) OICCalloc(1, sizeof(*newstate));
     if (!newstate)
     {
         OIC_LOG(ERROR, TAG, "out of memory");
@@ -3366,8 +3397,9 @@ CAResult_t CALEClientAddDeviceStateToList(CALEState_t* state)
         }
     }
     u_arraylist_add(g_deviceStateList, state); // update new state
-    OIC_LOG_V(INFO, TAG, "Set State Info to List : %d, %d, %s",
-              state->connectedState, state->notificationState, state->address);
+    OIC_LOG_V(INFO, TAG, "Set State Info to List : %d, %d, %s, %d",
+              state->connectedState, state->notificationState,
+              state->address, state->autoConnectFlag);
 
     ca_mutex_unlock(g_deviceStateListMutex);
     return CA_STATUS_OK;
@@ -3797,6 +3829,16 @@ CAResult_t CALEClientInitGattMutexVaraibles()
         }
     }
 
+    if (NULL == g_deviceScanRetryDelayMutex)
+    {
+        g_deviceScanRetryDelayMutex = ca_mutex_new();
+        if (NULL == g_deviceScanRetryDelayMutex)
+        {
+            OIC_LOG(ERROR, TAG, "ca_mutex_new has failed");
+            return CA_STATUS_FAILED;
+        }
+    }
+
     return CA_STATUS_OK;
 }
 
@@ -3825,6 +3867,9 @@ void CALEClientTerminateGattMutexVariables()
 
     ca_mutex_free(g_threadWriteCharacteristicMutex);
     g_threadWriteCharacteristicMutex = NULL;
+
+    ca_mutex_free(g_deviceScanRetryDelayMutex);
+    g_deviceScanRetryDelayMutex = NULL;
 }
 
 void CALEClientSetSendFinishFlag(bool flag)
@@ -3842,6 +3887,22 @@ void CALEClientSetSendFinishFlag(bool flag)
 
 CAResult_t CAStartLEGattClient()
 {
+    // init mutex for send logic
+    if (!g_deviceDescCond)
+    {
+        g_deviceDescCond = ca_cond_new();
+    }
+
+    if (!g_threadCond)
+    {
+        g_threadCond = ca_cond_new();
+    }
+
+    if (!g_threadWriteCharacteristicCond)
+    {
+        g_threadWriteCharacteristicCond = ca_cond_new();
+    }
+
     CAResult_t res = CALEClientStartMulticastServer();
     if (CA_STATUS_OK != res)
     {
@@ -3894,12 +3955,35 @@ void CAStopLEGattClient()
     }
 
     ca_mutex_lock(g_threadMutex);
+    OIC_LOG(DEBUG, TAG, "signal - connection cond");
     ca_cond_signal(g_threadCond);
     ca_mutex_unlock(g_threadMutex);
 
     ca_mutex_lock(g_threadWriteCharacteristicMutex);
+    OIC_LOG(DEBUG, TAG, "signal - WriteCharacteristic cond");
     ca_cond_signal(g_threadWriteCharacteristicCond);
     ca_mutex_unlock(g_threadWriteCharacteristicMutex);
+
+    ca_mutex_lock(g_threadSendMutex);
+    OIC_LOG(DEBUG, TAG, "signal - send cond");
+    ca_cond_signal(g_deviceDescCond);
+    ca_mutex_unlock(g_threadSendMutex);
+
+    ca_mutex_lock(g_deviceScanRetryDelayMutex);
+    OIC_LOG(DEBUG, TAG, "signal - delay cond");
+    ca_cond_signal(g_deviceScanRetryDelayCond);
+    ca_mutex_unlock(g_deviceScanRetryDelayMutex);
+
+
+    ca_cond_free(g_deviceDescCond);
+    ca_cond_free(g_threadCond);
+    ca_cond_free(g_threadWriteCharacteristicCond);
+    ca_cond_free(g_deviceScanRetryDelayCond);
+
+    g_deviceDescCond = NULL;
+    g_threadCond = NULL;
+    g_threadWriteCharacteristicCond = NULL;
+    g_deviceScanRetryDelayCond = NULL;
 
     if (isAttached)
     {
@@ -4177,13 +4261,13 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
                 goto error_exit;
             }
 
-            jobject newGatt = CALEClientConnect(env, btObject,
-                                                CALEClientGetAutoConnectFlag(env, leAddress));
+            jobject newGatt = CALEClientConnect(env, btObject, JNI_TRUE);
             if (!newGatt)
             {
                 OIC_LOG(ERROR, TAG, "CALEClientConnect has failed");
                 goto error_exit;
             }
+
             return;
         }
         else
