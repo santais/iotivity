@@ -692,8 +692,8 @@ namespace OIC { namespace Service
         {
             if(type.compare(OIC_DEVICE_LIGHT) == 0)
             {
-                m_sceneStart->addNewSceneAction(resource, "power", "on");
-                m_sceneStop->addNewSceneAction(resource, "power", "off");
+                m_sceneStart->addNewSceneAction(resource, "power", true);
+                m_sceneStop->addNewSceneAction(resource, "power", false);
             }
         }
     }
