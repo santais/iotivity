@@ -83,12 +83,16 @@ void OnboardingCallback(ESResult esResult)
 void ProvisioningCallback(ESResult esResult)
 {
     OIC_LOG_V(DEBUG, ES_ENROLLEE_TAG, "ProvisioningCallback with  result = %d", esResult);
+    printf("ProvisioningCallback with result = %d\n", esResult);
 
     if (esResult == ES_RECVTRIGGEROFPROVRES)
     {
+        printf("Before GetTargetNetworkInfoProvResource\n");
         GetTargetNetworkInfoFromProvResource(gTargetSsid, gTargetPass);
         gEnrolleeStatusCb(ES_OK, ES_PROVISIONED_STATE);
         OIC_LOG(DEBUG, ES_ENROLLEE_TAG, "Connecting with target network");
+        printf("Conecting to target network\n");
+        printf("ProvisionCallback ssid %s and pass %s\n", gTargetSsid, gTargetPass);
 
         // Connecting/onboarding to target network
         ConnectToWiFiNetwork(gTargetSsid, gTargetPass, OnboardingCallbackTargetNet);
@@ -172,6 +176,7 @@ ESResult TerminateEasySetup()
 ESResult InitProvisioning()
 {
     OIC_LOG(INFO, ES_ENROLLEE_TAG, "InitProvisioning <<IN>>");
+    printf("InitProvisioning <<IN>>\n");
 
     if (CreateProvisioningResource(gIsSecured) != OC_STACK_OK)
     {

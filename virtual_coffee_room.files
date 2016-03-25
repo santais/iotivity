@@ -1333,3 +1333,16 @@ service/easy-setup/enrollee/inc/resourcehandler.h
 service/easy-setup/enrollee/inc/softap.h
 service/easy-setup/sampleapp/enrollee/arduino/enrolleewifi.cpp
 service/easy-setup/sampleapp/enrollee/arduino/SConscript
+service/easy-setup/enrollee/src/easysetup.c
+service/easy-setup/enrollee/src/easysetupcallbacks.h
+service/easy-setup/enrollee/src/onboarding.c
+service/easy-setup/enrollee/src/onboarding.h
+service/easy-setup/enrollee/src/resourcehandler.c
+service/easy-setup/enrollee/src/resourcehandler.h
+service/easy-setup/enrollee/src/softap.c
+service/easy-setup/enrollee/src/softap.h
+service/easy-setup/enrollee/linux/wifi/networkhandler.c
+service/easy-setup/enrollee/linux/wifi/networkhandler.h
+service/easy-setup/enrollee/linux/wifi/softapnative.c
+service/easy-setup/sampleapp/enrollee/linux/enrolleewifi.c
+service/easy-setup/sampleapp/enrollee/linux/SConscript

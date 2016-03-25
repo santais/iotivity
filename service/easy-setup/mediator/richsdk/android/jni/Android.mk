@@ -1,13 +1,15 @@
 LOCAL_PATH := $(call my-dir)
 
+#$(TARGET_ARCH_ABI)
+
 include $(CLEAR_VARS)
-OIC_LIB_PATH := ../../../../../../out/android/$(TARGET_ARCH_ABI)/debug
+OIC_LIB_PATH := ../../../../../../out/android/armeabi-v7a/debug
 LOCAL_MODULE := android-oc
 LOCAL_SRC_FILES := $(OIC_LIB_PATH)/liboc.so
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
-OIC_LIB_PATH := ../../../../../../out/android/$(TARGET_ARCH_ABI)/debug
+OIC_LIB_PATH := ../../../../../../out/android/armeabi-v7a/debug
 LOCAL_MODULE := android-easysetup
 LOCAL_SRC_FILES := $(OIC_LIB_PATH)/libESMediatorRich.so
 include $(PREBUILT_SHARED_LIBRARY)

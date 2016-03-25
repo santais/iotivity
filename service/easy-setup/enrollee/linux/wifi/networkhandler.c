@@ -28,6 +28,13 @@
 
 #define LOG_TAG "LINUX ES"
 
+typedef enum TargetOS {
+    LINUX,
+    ARDUINO
+} TargetOS;
+
+static const TargetOS OS = LINUX;
+
 const char *gSsid = "DLNA_LISMORE1";
 const char *gPass = "dlna@010203";
 char *gIpAddress;
@@ -39,7 +46,15 @@ NetworkEventCallback gNetworkEventCb;
  */
 static void ESActivateWifi()
 {
-
+    if(OS == LINUX)
+    {
+        // Target is Linux
+        printf("OS is linux\n");
+    }
+    else
+    {
+        printf("OS is Arduino\n");
+    }
 }
 
 static void start()

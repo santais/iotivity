@@ -8,13 +8,11 @@ buildscript {
         classpath 'com.android.tools.build:gradle:1.2.3'
     }
 }
-
 allprojects {
     repositories {
         jcenter()
     }
 }
-
 android {
     compileSdkVersion 21
     buildToolsVersion '21.1.2'
@@ -33,4 +31,7 @@ android {
     sourceSets {
         main { java.srcDirs = ['src/main/java', 'src/main/java/common', 'src/main/java/interface'] }
     }
+}
+dependencies {
+    compile project(':iotivity-base-armeabi-v7a-debug')
 }
