@@ -105,6 +105,9 @@ service/resource-hosting/SampleApp/tizen/RHSampleApp/inc
 service/resource-hosting/SampleApp/tizen/sampleConsumer/src
 service/resource-hosting/src
 service/resource-hosting/unittest
+service/easy-setup/enrollee/inc
+service/easy-setup/inc
+service/easy-setup/enrollee/linux/wifi
 service/rich_server/include
 service/controller/include
 service/simulator/inc
