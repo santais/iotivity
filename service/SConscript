@@ -25,12 +25,13 @@
 Import('env')
 
 target_os = env.get('TARGET_OS')
+release = env.get('RELASE')
 
 if target_os not in ['arduino','darwin', 'ios']:
     # Build things manager project
     SConscript('things-manager/SConscript')
 
-    if target_os in ['linux']:
+    if target_os in ['linux'] and release:
 	    # Build Controller
     	    SConscript('controller/SConscript')
 
