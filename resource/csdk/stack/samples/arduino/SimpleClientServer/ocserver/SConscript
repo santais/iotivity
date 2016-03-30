@@ -40,7 +40,7 @@ arduino_simplecs_env.AppendUnique(CPPDEFINES = ['TB_LOG'])
 arduino_simplecs_env.PrependUnique(LIBS = ['octbstack', 'ocsrm', 'connectivity_abstraction', 'coap'])
 
 if 'arduino_due_x' in env.get('BOARD'):
-	arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', 'lightServer.cpp')
+	arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', 'lightServer.cpp',)
 if 'mega' in env.get('BOARD'):
 	arduino_simplecs = arduino_simplecs_env.Program('SimpleTemperatureServer', 'temperatureServer.cpp')
 env.CreateBin('SimpleClientServer')

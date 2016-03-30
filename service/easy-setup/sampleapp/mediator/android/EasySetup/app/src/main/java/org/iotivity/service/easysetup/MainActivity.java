@@ -27,7 +27,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
@@ -58,8 +57,8 @@ import org.iotivity.base.ServiceType;
 import org.iotivity.service.easysetup.mediator.EasySetupService;
 import org.iotivity.service.easysetup.mediator.EasySetupStatus;
 import org.iotivity.service.easysetup.mediator.EnrolleeDevice;
-import org.iotivity.service.easysetup.mediator.IpOnBoardingConnection;
 import org.iotivity.service.easysetup.mediator.EnrolleeDeviceFactory;
+import org.iotivity.service.easysetup.mediator.IpOnBoardingConnection;
 import org.iotivity.service.easysetup.mediator.WiFiOnBoardingConfig;
 import org.iotivity.service.easysetup.mediator.WiFiProvConfig;
 
@@ -256,6 +255,7 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void onFinished(final EnrolleeDevice enrolledevice) {
+
                         Log.i("MainActivity", "onFinished() is received "
                                 + enrolledevice.isSetupSuccessful());
                         if (enrolledevice.isSetupSuccessful()) {

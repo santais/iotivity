@@ -16,15 +16,12 @@
 /*********** CONSTANT VARIABLES ****************/
 static const int URI_MAXSIZE = 19;
 static const int MAX_NUM_OF_RESOURCES = 10;
-
-
-/*********** GLOBAL VARIABLES ******************/
-static int gCurrLightInstance = 0;
-static int gCurrButtonInstance = 0;
+static const int MAXIMUM_OBSERVERS = 2;
 
 /*********** PRIVATE VARIABLES ****************/
 static OCBaseResourceT *m_resourceList = NULL;
 static int numOfResources = 0;
+static int numOfObservers = 0;
 
 /*********************** REVISED VERSION 1.1 **************************/
 
@@ -235,7 +232,7 @@ OCStackResult addType(OCBaseResourceT *resource, OCResourceType *type)
 
     OCStackResult result = OCBindResourceTypeToResource(resource->handle, type->resourcetypename);
 
-    OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
+    //OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
     OIC_LOG_V(INFO, TAG, "Type added: %s", type->resourcetypename);
 
     free(type);
@@ -289,7 +286,7 @@ OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *inter
 
     OCStackResult result = OCBindResourceInterfaceToResource(resource->handle, interface->name);
 
-    OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
+    //OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
     OIC_LOG_V(INFO, TAG, "Interface added: %s", interface->name);
 
 
@@ -601,7 +598,7 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
     else if(OC_OBSERVE_DEREGISTER == ehRequest->obsInfo.action)
     {
         OIC_LOG(INFO, TAG, "Received OC_OBSERVER_DEREGISTER from client");
-        resource->underObservation = false;
+        //resource->underObservation = false;
     }
     else
     {
@@ -763,6 +760,7 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
  *
  * @return A string with the result
 */
+ /*
 const char * getOCStackResult(OCStackResult result)
 {
    switch (result) {
@@ -801,7 +799,7 @@ const char * getOCStackResult(OCStackResult result)
     default:
         return "UNKNOWN";
     }
-}
+}*/
 
 /**
  * @brief Returns a string corrensponding to the request

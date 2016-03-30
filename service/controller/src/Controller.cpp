@@ -337,10 +337,10 @@ namespace OIC { namespace Service
                     resource->startCaching(std::bind(&Controller::cacheUpdateCallback, this, std::placeholders::_1));
                 }
 
-                if(!resource->isMonitoring())
+                /*if(!resource->isMonitoring())
                 {
                     resource->startMonitoring(std::bind(&Controller::stateChangeCallback, this, std::placeholders::_1));
-                }
+                }*/
 
                 std::cout << "\tAdded device: " << resource->getUri() + resource->getAddress() << std::endl;
                 std::cout << "\tDevice successfully added to the list" << std::endl;

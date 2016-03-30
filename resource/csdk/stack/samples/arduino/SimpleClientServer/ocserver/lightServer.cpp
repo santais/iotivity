@@ -18,8 +18,6 @@
 //
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#include <malloc.h>
-
 #include "ocbaseresource.h"
 #include "ResourceTypes.h"
 
@@ -183,42 +181,57 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
 {
     if(IOType == OUTPUT)
     {
+        bool power(false);
+        int brightness(0);
        // OIC_LOG(DEBUG, TAG, "LightIOHandler: OUTPUT");
         OCAttributeT *current = attribute;
         while(current != NULL)
         {
+            //OIC_LOG_V(DEBUG, TAG, "Attribute name: %s", current->name);
             //OIC_LOG(DEBUG, TAG, "Searching light");
             if(strcmp(current->name, "power") == 0)
             {
 
-                char* value = current->value.data.str;
-                OIC_LOG_V(DEBUG, TAG, "Value received is: %s", value);
-                if(strcmp(value, "on"))
-                {
-                    digitalWrite(attribute->port->pin, LOW);
-                }
-                else if (strcmp(value, "off"))
-                {
-                    digitalWrite(attribute->port->pin, HIGH);
-                }
+                power = current->value.data.b;
+                OIC_LOG_V(DEBUG, TAG, "Power value received is: %s", power ? "true" : "false");
 
                 if(attribute)
                 {
-                    //*((char**)attribute->value.data) = value;
-                    attribute->value.data.str = value;
+                    attribute->value.data.b = power;
                 }
+            }
+            else if (strcmp(current->name, "brightness") == 0)
+            {
+                brightness = current->value.data.i;
+                OIC_LOG_V(DEBUG, TAG, "Brightness value set to: %i", brightness);
 
-                if(*underObservation)
+                if(attribute)
                 {
-                    OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
-                    OCNotifyAllObservers(handle, OC_LOW_QOS);
+                    attribute->value.data.i = brightness;
                 }
             }
 
             current = current->next;
         }
+        if(power)
+        {
+            analogWrite(attribute->port->pin, brightness);
+        }
+        else
+        {
+            analogWrite(attribute->port->pin, 0);
+        }
+
+        if(*underObservation)
+        {
+            OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
+            if(OCNotifyAllObservers(handle, OC_LOW_QOS) == OC_STACK_NO_OBSERVERS)
+            {
+                OIC_LOG(DEBUG, TAG, "No more observers!");
+                *underObservation = false;
+            }
+        }
     }
-   // OIC_LOG(DEBUG, TAG, "Leaving light handler");
 }
 
 
@@ -263,11 +276,11 @@ void setup()
     portLight.type = OUT;
 
     ResourceData power;
-    power.str = "off";
-    addAttribute(&resourceLight->attribute, "power", power, STRING, &portLight);
+    power.b = true;
+    addAttribute(&resourceLight->attribute, "power", power, BOOL, &portLight);
 
     ResourceData brightness;
-    brightness.i = 0;
+    brightness.i = 255;
     addAttribute(&resourceLight->attribute, "brightness", brightness, INT, &portLight);
 
     printResource(resourceLight);
@@ -275,7 +288,7 @@ void setup()
     OIC_LOG(DEBUG, TAG, "Finished setup");
 }
 
-// The loop function is called in an endless loop
+// The loop function is caplled in an endless loop
 void loop()
 {
     // This artificial delay is kept here to avoid endless spinning

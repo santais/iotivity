@@ -1346,3 +1346,6 @@ service/easy-setup/enrollee/linux/wifi/networkhandler.h
 service/easy-setup/enrollee/linux/wifi/softapnative.c
 service/easy-setup/sampleapp/enrollee/linux/enrolleewifi.c
 service/easy-setup/sampleapp/enrollee/linux/SConscript
+resource/csdk/stack/src/ocbaseresource.c
+resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/ocbaseresource.cpp
+resource/csdk/stack/include/ocbaseresource.h

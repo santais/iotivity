@@ -228,7 +228,7 @@ OCStackResult addType(OCBaseResourceT *resource, const char *typeName);
  * @return              OC_STACK_OK if successfully bound
  */
 OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *interface);
-OCStackResult addInterface(OCBaseResourceT *resource, char* interfaceName);
+OCStackResult addInterface(OCBaseResourceT *resource, const char* interfaceName);
 
 /**
  * @brief addAttribute  Adds an attribute to the resource

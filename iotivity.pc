@@ -1,6 +1,6 @@
 # Package Information for pkg-config
 
-prefix=/home/markpovlsen/Documents/iotivity/out/linux/x86_64/release/
+prefix=/home/markpovlsen/Documents/iotivity/out/android/armeabi-v7a/release/
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include

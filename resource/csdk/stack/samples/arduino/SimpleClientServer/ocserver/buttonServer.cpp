@@ -18,8 +18,6 @@
 //
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#include <malloc.h>
-
 #include "ocbaseresource.h"
 #include "ResourceTypes.h"
 
@@ -234,7 +232,11 @@ void buttonIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handl
         if(*underObservation && buttonPrevValue != readValue)
         {
             OIC_LOG(DEBUG, TAG, "BUTTON: Notifying observers");
-            OCNotifyAllObservers(handle, OC_NA_QOS);
+            if(OCNotifyAllObservers(handle, OC_NA_QOS) == OC_STACK_NO_OBSERVERS)
+            {
+                OIC_LOG(DEBUG, TAG, "No more observers!");
+                *underObservation = false;
+            }
         }
 
         buttonPrevValue = readValue;
@@ -282,7 +284,7 @@ void setup()
 
     // Button resource
     OCBaseResourceT *buttonResource = createResource("/a/button", OIC_DEVICE_BUTTON, OC_RSRVD_INTERFACE_DEFAULT,
-                                                      (OC_DISCOVERABLE | OC_OBSERVABLE), buttonIOHandler);
+                                                      (OC_DISCOVERABLE | OC_OBSERVABLE | OC_SLOW), buttonIOHandler);
 
     buttonResource->name = "Marks Button";
 

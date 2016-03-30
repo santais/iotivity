@@ -33,5 +33,5 @@ android {
     }
 }
 dependencies {
-    compile project(':iotivity-base-armeabi-v7a-debug')
+    compile project(':iotivity-base-armeabi-v7a-release')
 }

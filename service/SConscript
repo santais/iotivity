@@ -30,9 +30,9 @@ if target_os not in ['arduino','darwin', 'ios']:
     # Build things manager project
     SConscript('things-manager/SConscript')
 
-    #if target_os in ['linux']:
+    if target_os in ['linux']:
 	    # Build Controller
-    #	    SConscript('controller/SConscript')
+    	    SConscript('controller/SConscript')
 
     # Build notification manager project
     SConscript('resource-hosting/SConscript')

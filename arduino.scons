@@ -47,7 +47,7 @@ if 'RBL_NRF8001' in env.get('SHIELD'):
 env.ImportLib('Time/Time')
 
 #Mp
-env.ImportLib('Scheduler')
+#env.ImportLib('Scheduler')
 
 # we have variety of macros for arduino!!
 env.AppendUnique(CPPDEFINES = ['WITH_ARDUINO', '__ARDUINO__'])

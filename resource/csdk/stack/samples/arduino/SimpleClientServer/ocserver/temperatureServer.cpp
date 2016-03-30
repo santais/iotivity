@@ -18,12 +18,11 @@
 //
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#include <malloc.h>
-
 #include "ocbaseresource.h"
 #include "ResourceTypes.h"
+#include <stdlib.h>
 
-static const int DELAY_TIME_INPUT_THREAD = 10;      // ms
+static const int DELAY_TIME_INPUT_THREAD = 1000;      // ms
 
 const char *getResult(OCStackResult result);
 
@@ -35,9 +34,10 @@ void checkInputThread();
 
 // Blinking LED
 static const char LED_PIN = 13;
-static const char TEMPERATURE_PIN_IN = 6;
+static const char TEMPERATURE_PIN_IN = A1;
+static const float TEMPERATURE_CONSTANT = 9.31;
 
-bool buttonPrevValue = false;
+double tempPrevValue = 0;
 
 #define TAG "ArduinoServer"
 
@@ -158,21 +158,25 @@ void printAttribute(OCAttributeT *attributes)
         switch(current->value.dataType)
         {
         case INT:
-            OIC_LOG_V(DEBUG, TAG, "Value: %i", current->value.data.i);
+            OIC_LOG_V(DEBUG, TAG, "Value int: %i", current->value.data.i);
             //OIC_LOG_V(DEBUG, TAG, "Value: %i", *((int*)current->value.data));
             break;
         case DOUBLE:
-            OIC_LOG_V(DEBUG, TAG, "Value: %f", current->value.data.d);
+            Serial.print("Value double: ");
+            Serial.print(current->value.data.d);
+            Serial.print("\n");
+
+            //OIC_LOG_V(DEBUG, TAG, "Value double: %f", (float) current->value.data.d);
             //OIC_LOG_V(DEBUG, TAG, "Value: %f", *((double*)current->value.data));
             break;
             break;
         case BOOL:
-            OIC_LOG_V(DEBUG, TAG, "Value: %s", current->value.data.b ? "true" : "false");
+            OIC_LOG_V(DEBUG, TAG, "Value bool: %s", current->value.data.b ? "true" : "false");
            /* bool boolean = *((bool*) current->value.data);
             OIC_LOG_V(DEBUG, TAG, "Value: %s", boolean ? "true" : "false");*/
             break;
         case STRING:
-            OIC_LOG_V(DEBUG, TAG, "Value: %s", current->value.data.str);
+            OIC_LOG_V(DEBUG, TAG, "Value string: %s", current->value.data.str);
             //OIC_LOG_V(DEBUG, TAG, "Value: %s", *((char**)current->value.data));
             break;
         }
@@ -212,43 +216,35 @@ void temperatureIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle 
 {
     if(IOType == INPUT)
     {
-       // OIC_LOG(DEBUG, TAG, "ButtonIOHandler: INPUT");
-        bool readValue(false);
-        if(digitalRead(attribute->port->pin))
-        {
-            readValue = true;
-        }
-        else
-        {
-            readValue = false;
-        }
+        // Read the ADC value
+        int reading = analogRead(attribute->port->pin);
+        double temperature = reading / TEMPERATURE_CONSTANT;
 
         if(attribute)
         {
-            attribute->value.data.b = readValue;
+            dtostrf(temperature, 5, 2, attribute->value.data.str);
+            OIC_LOG_V(DEBUG, TAG, "temperature is: %s", attribute->value.data.str);
         }
 
-        // Check if it's being observed
-        if(*underObservation && buttonPrevValue != readValue)
+        // Only update if the change is only larger than 0.01 C.
+        double floorCurrentTemp = floor(temperature * 10) / 10;
+        double floorPrevTemp = floor(tempPrevValue * 10) / 10;
+        if(*underObservation && (floorCurrentTemp != floorPrevTemp))
         {
-            OIC_LOG(DEBUG, TAG, "BUTTON: Notifying observers");
-            OCNotifyAllObservers(handle, OC_NA_QOS);
+            //OIC_LOG(DEBUG, TAG, "Notifying observers");
+            if(OCNotifyAllObservers(handle, OC_NA_QOS) == OC_STACK_NO_OBSERVERS)
+            {
+                OIC_LOG(DEBUG, TAG, "No more observers!");
+                *underObservation = false;
+            }
         }
 
-        buttonPrevValue = readValue;
+        tempPrevValue = temperature;
     }
     else
     {
         OIC_LOG(ERROR, TAG, "BUTTON is read only!");
     }
-}
-
-void aliveThread()
-{
-    digitalWrite(LED_PIN, HIGH);
-    delay(500);
-    digitalWrite(LED_PIN, LOW);
-    delay(500);
 }
 
 //The setup function is called once at startup of the sketch
@@ -280,9 +276,9 @@ void setup()
 
     // Button resource
     OCBaseResourceT *temperatureResource = createResource("/a/temperatureSensor", OIC_DEVICE_SENSOR, OC_RSRVD_INTERFACE_DEFAULT,
-                                                      (OC_DISCOVERABLE | OC_OBSERVABLE), buttonIOHandler);
+                                                      (OC_DISCOVERABLE | OC_OBSERVABLE | OC_SLOW | OC_ACTIVE), temperatureIOHandler);
 
-    buttonResource->name = "LM35 Temperature Sensor";
+    temperatureResource->name = "LM35 Temperature Sensor";
 
     addType(temperatureResource, OIC_TYPE_TEMPERATURE);
 
@@ -290,14 +286,17 @@ void setup()
     addInterface(temperatureResource, OC_RSRVD_INTERFACE_READ);
 
     OCIOPort port;
-    port.pin = TEST_BUT_PIN;
+    port.pin = TEMPERATURE_PIN_IN;
     port.type = IN;
 
-    ResourceData data;
-    data.b = false;
-    addAttribute(&buttonResource->attribute, "state", data, BOOL, &port);
+    // Setup ADC
+    analogReference(INTERNAL1V1);
 
-    printResource(buttonResource);
+    ResourceData data;
+    data.str = "0.0";
+    addAttribute(&temperatureResource->attribute, "temperature", data, STRING, &port);
+
+    printResource(temperatureResource);
 }
 
 // The loop function is called in an endless loop
@@ -307,6 +306,7 @@ void loop()
     // of Arduino microcontroller. Modify it as per specific application needs.
     delay(DELAY_TIME_INPUT_THREAD);
     checkInputThread();
+    PrintArduinoMemoryStats();
 
     // This call displays the amount of free SRAM available on Arduino
     //PrintArduinoMemoryStats();
