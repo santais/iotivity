@@ -77,12 +77,8 @@ void GetTargetNetworkInfoFromProvResource(char *name, char *pass)
 {
     if (name != NULL && pass != NULL)
     {
-        if(gProvResource.tnn == NULL || gProvResource.cd == NULL) {
-            printf("gProvResource is null!!\n");
-        } else {
-            OICStrcpy(name, sizeof(gProvResource.tnn), gProvResource.tnn);
-            OICStrcpy(pass, sizeof(gProvResource.cd), gProvResource.cd);
-        }
+        OICStrcpy(name, sizeof(name), gProvResource.tnn);
+        OICStrcpy(pass, sizeof(pass), gProvResource.cd);
     }
 }
 
@@ -112,7 +108,6 @@ OCStackResult CreateProvisioningResource(bool isSecured)
     }
 
     OIC_LOG_V(INFO, ES_RH_TAG, "Created Prov resource with result: %s", getResult(res));
-    printf("Created Prov resource with result: %s \n", getResult(res));
     return res;
 }
 
@@ -217,7 +212,6 @@ OCEntityHandlerResult ProcessPostRequest(OCEntityHandlerRequest *ehRequest, OCRe
     {
         OICStrcpy(gProvResource.tnn, sizeof(gProvResource.tnn), tnn);
         OIC_LOG(INFO, ES_RH_TAG, "got ssid");
-        printf("Got ssid: %s and tnn %s \n", tnn, gProvResource.tnn);
     }
 
     OIC_LOG_V(INFO, ES_RH_TAG, "gProvResource.tnn %s", gProvResource.tnn);
@@ -227,9 +221,7 @@ OCEntityHandlerResult ProcessPostRequest(OCEntityHandlerRequest *ehRequest, OCRe
     {
         OICStrcpy(gProvResource.cd, sizeof(gProvResource.cd), cd);
         OIC_LOG(INFO, ES_RH_TAG, "got password");
-        printf("Got ssid: %s and tnn %s \n", cd, gProvResource.cd);
     }OIC_LOG_V(INFO, ES_RH_TAG, "gProvResource.cd %s", gProvResource.cd);
-
 
     gProvResource.ps = ES_PS_PROVISIONING_COMPLETED;
 

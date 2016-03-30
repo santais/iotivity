@@ -180,7 +180,7 @@ int main()
     printf("EasySetup Enrollee SAMPLE\n");
     printf("#########################\n");
     PrintMenu();
-    char option = 'T';
+    char option = 'T'; 
 
     while(true)
     {

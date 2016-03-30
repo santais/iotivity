@@ -146,8 +146,8 @@ void initEasySetup()
 
          remoteEnrollee->registerEasySetupStatusHandler(&easySetupStatusCallback);
     }
-
 }
+
 void runEasySetupMenu()
 {
     constexpr int EASY_SETUP_INIT = 1;
