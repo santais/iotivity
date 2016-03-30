@@ -26,6 +26,8 @@
 #include "ocpayload.h"
 #include "payload_logging.h"
 
+#include <inttypes.h>
+
 #define TAG "OIC_RI_RDPAYLOAD"
 
 #define CBOR_ROOT_ARRAY_LENGTH 1
@@ -82,11 +84,13 @@ CborError OCRDPayloadToCbor(const OCRDPayload *rdPayload, uint8_t *outPayload, s
         OCResourceCollectionPayload *rdPublish = rdPayload->rdPublish;
         while (rdPublish)
         {
+            OIC_LOG(DEBUG, TAG, "Inside rd publish");
             cborEncoderResult = OCTagsPayloadToCbor(rdPublish->tags, &colArray);
             VERIFY_CBOR_SUCCESS(TAG, cborEncoderResult, "Failed adding tags payload");
             cborEncoderResult = OCLinksPayloadToCbor(rdPublish->setLinks, &colArray);
             VERIFY_CBOR_SUCCESS(TAG, cborEncoderResult, "Failed adding setLinks payload");
             rdPublish = rdPublish->next;
+            OIC_LOG(DEBUG, TAG, "rdPublish->next");
         }
         cborEncoderResult = cbor_encoder_close_container(&encoder, &colArray);
         VERIFY_CBOR_SUCCESS(TAG, cborEncoderResult, "Failed closing collection array");
@@ -134,10 +138,12 @@ static CborError OCTagsPayloadToCbor(OCTagsPayload *tags, CborEncoder *setMap)
             sizeof(OC_RSRVD_BASE_URI) - 1, (char *)tags->baseURI);
     VERIFY_CBOR_SUCCESS(TAG, cborEncoderResult, "Failed to add OC_RSRVD_BASE_URI in tags map");
 
+    OIC_LOG_V(DEBUG, TAG, "Tags port is: %" PRIu8, tags->bitmap);
     cborEncoderResult = ConditionalAddIntToMap(&tagsMap, OC_RSRVD_BITMAP,
-            sizeof(OC_RSRVD_BITMAP) - 1, (uint64_t *)&tags->bitmap);
+            sizeof(OC_RSRVD_BITMAP) - 1, (uint64_t  *)&tags->bitmap);
     VERIFY_CBOR_SUCCESS(TAG, cborEncoderResult, "Failed to add OC_RSRVD_BITMAP in tags map");
 
+    OIC_LOG_V(DEBUG, TAG, "Tags port is: %" PRIu16, tags->port);
     cborEncoderResult = ConditionalAddIntToMap(&tagsMap, OC_RSRVD_HOSTING_PORT,
             sizeof(OC_RSRVD_HOSTING_PORT) - 1, (uint64_t *)&tags->port);
     VERIFY_CBOR_SUCCESS(TAG, cborEncoderResult, "Failed to add OC_RSRVD_HOSTING_PORT in tags map");
@@ -463,12 +469,15 @@ static CborError ConditionalAddTextStringToMap(CborEncoder* map, const char* key
 static CborError ConditionalAddIntToMap(CborEncoder *map, const char *tags, const size_t size,
     const uint64_t *value)
 {
-    CborError err = CborUnknownError;
+    CborError err = CborNoError;
     if (*value)
     {
         err = cbor_encode_text_string(map, tags, size);
         VERIFY_CBOR_SUCCESS(TAG, err, "failed setting value");
         err = cbor_encode_uint(map, *value);
+    } else
+    {
+        OIC_LOG(DEBUG, TAG, "Value not initialized");
     }
 exit:
     return err;

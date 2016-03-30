@@ -25,7 +25,7 @@
 Import('env')
 
 target_os = env.get('TARGET_OS')
-release = env.get('RELASE')
+release = env.get('RELEASE')
 
 if target_os not in ['arduino','darwin', 'ios']:
     # Build things manager project

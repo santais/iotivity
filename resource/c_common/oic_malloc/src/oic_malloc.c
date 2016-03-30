@@ -131,6 +131,5 @@ void OICFree(void *ptr)
     }
     OIC_LOG_V(INFO, TAG, "free: ptr=%p, count=%u", ptr, count);
 #endif
-
     free(ptr);
 }

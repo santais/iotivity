@@ -275,7 +275,7 @@ OCStackResult OCRDPublish(char *addr, uint16_t port, int numArg, ... )
                 }
             }
 
-	    // MP
+        // MP
             // Changed OCgetNumberOfResourceTypes to OCGetNumberOfResourceInterfaces
             if (OC_STACK_OK == OCGetNumberOfResourceInterfaces(handle, &numElement))
             {

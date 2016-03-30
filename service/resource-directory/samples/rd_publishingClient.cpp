@@ -121,7 +121,7 @@ void registerLocalResources()
 
     EntityHandler cb = std::bind(&entityHandlerCb, std::placeholders::_1);
 
-    OCStackResult result = OCPlatform::registerResource(g_curResource_t,
+    /*OCStackResult result = OCPlatform::registerResource(g_curResource_t,
                            resourceURI_thermostat,
                            resourceTypeName_thermostat,
                            resourceInterface,
@@ -134,9 +134,9 @@ void registerLocalResources()
     {
         throw std::runtime_error(
             std::string("Device Resource failed to start") + std::to_string(result));
-    }
+    }*/
 
-    result = OCPlatform::registerResource(g_curResource_l,
+    OCStackResult result = OCPlatform::registerResource(g_curResource_l,
                                           resourceURI_light,
                                           resourceTypeName_light,
                                           resourceInterface,
