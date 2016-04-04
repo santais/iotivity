@@ -19,7 +19,7 @@
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include "OCApi.h"
 #include "OCPlatform.h"
-#include "ResourceTypes.h"
+#include "resource_types.h"
 
 using namespace OC;
 

@@ -1349,3 +1349,8 @@ service/easy-setup/sampleapp/enrollee/linux/SConscript
 resource/csdk/stack/src/ocbaseresource.c
 resource/csdk/stack/samples/arduino/SimpleClientServer/ocserver/ocbaseresource.cpp
 resource/csdk/stack/include/ocbaseresource.h
+resource/csdk/stack/include/rdpayload.h
+resource/csdk/stack/include/resource_types.h
+resource/csdk/stack/include/resource_types_arduino_mega.h
+service/controller/include/ResourceObject.hpp
+service/controller/src/ResourceObject.cpp

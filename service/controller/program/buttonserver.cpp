@@ -269,9 +269,14 @@ private:
                 ObservationInfo observationInfo = request->getObservationInfo();
                 if(ObserveAction::ObserveRegister == observationInfo.action)
                 {
+                    cout << "\t\trequestFlag : Observer\n";
                     gUnderObservation = true;
                 }
-                cout << "\t\trequestFlag : Observer\n";
+                else if(ObserveAction::ObserveUnregister == observationInfo.action)
+                {
+                    gUnderObservation = false;
+                    cout << "\t\trequestFlag : Degister Observer\n";
+                }
             }
         }
         else
@@ -352,7 +357,7 @@ int main()
         myButton.createResource();
 
         // Start input button resource
-        pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
+        //pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
 
         while(OCProcess() == OC_STACK_OK)
         {

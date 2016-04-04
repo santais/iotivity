@@ -24,17 +24,19 @@
 #ifndef RESOURCE_TYPES_H_
 #define RESOURCE_TYPES_H_
 
+#include <avr/pgmspace.h>
+
 using namespace std;
 
 //
 // Resource Devices
 //
-const static char* OIC_DEVICE_LIGHT                      = "oic.d.light";
-const static char* OIC_DEVICE_SENSOR                     = "oic.d.sensor";
-const static char* OIC_DEVICE_BUTTON                     = "oic.d.button";
-const static char* OIC_DEVICE_TV                         = "oic.d.tv";
-const static char* OIC_DEVICE_THERMOSTAT                 = "oic.d.theromstat";
-
+const static char* const OIC_DEVICE_LIGHT PROGMEM                      = "oic.d.light";
+const static char* const OIC_DEVICE_SENSOR PROGMEM                     = "oic.d.sensor";
+const static char* const OIC_DEVICE_BUTTON PROGMEM                     = "oic.d.button";
+const static char* const OIC_DEVICE_TV PROGMEM                         = "oic.d.tv";
+const static char* const OIC_DEVICE_THERMOSTAT PROGMEM                 = "oic.d.theromstat";
+const static char* const OIC_DEVICE_FAN PROGMEM                        = "oic.d.fan";
 // More toc ome...
 
 //
@@ -46,7 +48,7 @@ const static char* OIC_DEVICE_THERMOSTAT                 = "oic.d.theromstat";
  *
  * @param Brightness:       integer
  */
-const static char* OIC_TYPE_LIGHT_BRIGHTNESS           = "oic.r.light.brightness";
+const PROGMEM static char OIC_TYPE_LIGHT_BRIGHTNESS[]           = "oic.r.light.brightness";
 
 /**
  * @brief OIC_TYPE_LIGHT_DIMMING
@@ -55,7 +57,7 @@ const static char* OIC_TYPE_LIGHT_BRIGHTNESS           = "oic.r.light.brightness
  * @param step              integer
  * @param range             char*
  */
-const static char* OIC_TYPE_LIGHT_DIMMING              = "oic.r.light.dimming";
+const PROGMEM static char OIC_TYPE_LIGHT_DIMMING[]             = "oic.r.light.dimming";
 
 /**
  * @brief OIC_TYPE_LIGHT_RAMP_TIME
@@ -63,7 +65,7 @@ const static char* OIC_TYPE_LIGHT_DIMMING              = "oic.r.light.dimming";
  * @param rampTime          integer
  * @param range             char*
  */
-const static char* OIC_TYPE_LIGHT_RAMP_TIME            = "oic.r.light.rampTime";
+const PROGMEM static char OIC_TYPE_LIGHT_RAMP_TIME[]            = "oic.r.light.rampTime";
 
 //
 // Sensor Resource Types
@@ -75,7 +77,7 @@ const static char* OIC_TYPE_LIGHT_RAMP_TIME            = "oic.r.light.rampTime";
  * @param humidity          integer
  * @param desiredHumidity   integer
  */
-const static char* OIC_TYPE_HUMIDTY                    = "oic.r.humidty";
+const PROGMEM static char OIC_TYPE_HUMIDTY[]                    = "oic.r.humidty";
 
 /**
  * @brief OIC_TYPE_TEMPERATURE
@@ -84,7 +86,7 @@ const static char* OIC_TYPE_HUMIDTY                    = "oic.r.humidty";
  * @param units             enum ["C", "F", "K"]
  * @param range             char*
  */
-const static char* OIC_TYPE_TEMPERATURE                = "oic.r.temperature";
+const PROGMEM static char OIC_TYPE_TEMPERATURE[]                = "oic.r.temperature";
 
 //
 // Generic Resource Types
@@ -95,12 +97,12 @@ const static char* OIC_TYPE_TEMPERATURE                = "oic.r.temperature";
  *
  * @param count             integer
  */
-const static char* OIC_TYPE_SENSOR_ACTITIVTY_COUNT     = "oic.r.sensor.activity.count";
+const PROGMEM static char OIC_TYPE_SENSOR_ACTITIVTY_COUNT[]     = "oic.r.sensor.activity.count";
 
 /**
  * @brief OIC_TYPE_SENSOR_PRESSURE
  */
-const static char* OIC_TYPE_SENSOR_PRESSURE            = "oic.r.sensor.atmosphericPressure";
+const PROGMEM static char OIC_TYPE_SENSOR_PRESSURE[]            = "oic.r.sensor.atmosphericPressure";
 
 /**
  * @brief OIC_TYPE_SENSOR_CONTACT
@@ -113,49 +115,49 @@ const static char* OIC_TYPE_SENSOR_PRESSURE            = "oic.r.sensor.atmospher
  *
  * @param value             boolean
  */
-const static char* OIC_TYPE_SENSOR_CONTACT             = "oic.r.sensor.contact";
+const PROGMEM static char OIC_TYPE_SENSOR_CONTACT[]             = "oic.r.sensor.contact";
 
 /**
  * @brief OIC_TYPE_SENSOR_ILLUMINANCE
  *
  * @param illuminance       number
  */
-const static char* OIC_TYPE_SENSOR_ILLUMINANCE         = "oic.r.sensor.illuminance";
+const PROGMEM static char OIC_TYPE_SENSOR_ILLUMINANCE[]         = "oic.r.sensor.illuminance";
 
 /**
  * @brief OIC_TYPE_SENSOR_MOTION
  *
  * @para mvalue              boolean
  */
-const static char* OIC_TYPE_SENSOR_MOTION              = "oic.r.sensor.motion";
+const PROGMEM static char OIC_TYPE_SENSOR_MOTION[]              = "oic.r.sensor.motion";
 
 /**
  * @brief OIC_TYPE_SENSOR_PRESENCE
  *
  * @param value             boolean
  */
-const static char* OIC_TYPE_SENSOR_PRESENCE            = "oic.r.sensor.presence";
+const PROGMEM static char OIC_TYPE_SENSOR_PRESENCE[]            = "oic.r.sensor.presence";
 
 /**
  * @brief OIC_TYPE_SENSOR_TOUCH
  *
  * @param value             boolean
  */
-const static char* OIC_TYPE_SENSOR_TOUCH               = "oic.r.sensor.touch";
+const PROGMEM static char OIC_TYPE_SENSOR_TOUCH[]               = "oic.r.sensor.touch";
 
 /**
  * @brief OIC_TYPE_SENSOR_GLASSBREAK
  *
  * @param value             boolean
  */
-const static char* OIC_TYPE_SENSOR_GLASSBREAK          = "oic.r.sensor.glassBreak";
+const PROGMEM static char OIC_TYPE_SENSOR_GLASSBREAK[]          = "oic.r.sensor.glassBreak";
 
 /**
  * @brief OIC_TYPE_SENSOR_HEARTRATE
  *
  * @param heartRateZone     enum["Zone1", "Zone2", "Zone3", "Zone4", "Zone5"]
  */
-const static char* OIC_TYPE_SENSOR_HEARTRATE           = "oic.r.sensor.heart.zone";
+const PROGMEM static char OIC_TYPE_SENSOR_HEARTRATE[]           = "oic.r.sensor.heart.zone";
 
 //
 // Media Resource Types
@@ -167,7 +169,7 @@ const static char* OIC_TYPE_SENSOR_HEARTRATE           = "oic.r.sensor.heart.zon
  * @param url               char*
  * @param sdp               array char* (Array of SDP media or attribute line).
  */
-const static char* OIC_TYPE_MEDIA                      = "oic.r.media";
+const PROGMEM static char OIC_TYPE_MEDIA[]                      = "oic.r.media";
 
 /**
  * @brief OIC_TYPE_MEDIA_SOURCE
@@ -177,7 +179,7 @@ const static char* OIC_TYPE_MEDIA                      = "oic.r.media";
  * @param sourceType        enum ["audioOnly", "videoOnly", "audioPlusVideo"]
  * @param status            boolean
  */
-const static char* OIC_TYPE_MEDIA_SOURCE               = "oic.r.media.source";
+const PROGMEM static char OIC_TYPE_MEDIA_SOURCE[]               = "oic.r.media.source";
 
 /**
  * @brief OIC_TYPE_AUDIO
@@ -185,7 +187,7 @@ const static char* OIC_TYPE_MEDIA_SOURCE               = "oic.r.media.source";
  * @param volume            integer
  * @param mute              boolean
  */
-const static char* OIC_TYPE_AUDIO                      = "oic.r.audio";
+const PROGMEM static char OIC_TYPE_AUDIO[]                      = "oic.r.audio";
 
 
 //
@@ -196,12 +198,12 @@ const static char* OIC_TYPE_AUDIO                      = "oic.r.audio";
  *
  * @param value             boolean
  */
-const static char* OIC_TYPE_BINARY_SWITCH              = "oic.r.binary.switch";
+const PROGMEM static char OIC_TYPE_BINARY_SWITCH[]             = "oic.r.binary.switch";
 
 //
 // Service Resource Types
 //
-const static char* OIC_TYPE_RESOURCE_HOST              = "oic.r.resourcehosting";
+const PROGMEM static char OIC_TYPE_RESOURCE_HOST[]              = "oic.r.resourcehosting";
 
 //
 // Color Resource Types
@@ -214,7 +216,7 @@ const static char* OIC_TYPE_RESOURCE_HOST              = "oic.r.resourcehosting"
  * @param saturation        integer
  * @param colourspacevalue  char*
  */
-const static char* OIC_TYPE_COLOUR_CHROMA              = "oic.r.colour.chroma";
+const PROGMEM static char OIC_TYPE_COLOUR_CHROMA[]              = "oic.r.colour.chroma";
 
 /**
  * @brief OIC_TYPE_COLOUR_RGB
@@ -222,29 +224,29 @@ const static char* OIC_TYPE_COLOUR_CHROMA              = "oic.r.colour.chroma";
  * @param rgbValue          char*
  * @param range             char*
  */
-const static char* OIC_TYPE_COLOUR_RGB                 = "oic.r.colour.rgb";
+const PROGMEM static char OIC_TYPE_COLOUR_RGB[]                 = "oic.r.colour.rgb";
 
 /**
  * @brief OIC_TYPE_COLOUR_SATURATION
  *
  * @param colourSaturation  integer (min: 0, max: 100)
  */
-const static char* OIC_TYPE_COLOUR_SATURATION          = "oic.r.colour.saturation";
+const PROGMEM static char OIC_TYPE_COLOUR_SATURATION[]          = "oic.r.colour.saturation";
 
 /**
  * @brief OIC_TYPE_COLOR_AUTOWHITEBALANCE
  *
  * @param autoWhiteBalance  boolean
  */
-const static char* OIC_TYPE_COLOR_AUTOWHITEBALANCE     = "oic.r.colour.autowhitebalance";
+const PROGMEM static char OIC_TYPE_COLOR_AUTOWHITEBALANCE[]     = "oic.r.colour.autowhitebalance";
 
 //
 // Energi Resources Types
 //
-const static char* OIC_TYPE_ENERGY_OVERLOAD            = "oic.r.energy.overload";
-const static char* OIC_TYPE_ENERGY_DRLC                = "oic.r.energy.drlc";
-const static char* OIC_TYPE_ENERGY_USAGE               = "oic.r.energy.usage";
-const static char* OIC_TYPE_ENERGY_CONSUMPTION         = "oic.r.energy.consumption";
+const static char* const OIC_TYPE_ENERGY_OVERLOAD PROGMEM           = "oic.r.energy.overload";
+const static char* const OIC_TYPE_ENERGY_DRLC PROGMEM                 = "oic.r.energy.drlc";
+const static char* const OIC_TYPE_ENERGY_USAGE PROGMEM               = "oic.r.energy.usage";
+const static char* const OIC_TYPE_ENERGY_CONSUMPTION PROGMEM        = "oic.r.energy.consumption";
 
 
 

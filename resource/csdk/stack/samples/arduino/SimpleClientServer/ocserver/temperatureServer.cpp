@@ -19,12 +19,10 @@
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 #include "ocbaseresource.h"
-#include "ResourceTypes.h"
+#include "resource_types_arduino_mega.h"
 #include <stdlib.h>
 
 static const int DELAY_TIME_INPUT_THREAD = 1000;      // ms
-
-const char *getResult(OCStackResult result);
 
 void temperatureIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle,
                      bool *underObservation);

@@ -126,3 +126,4 @@ service/things-manager/sdk/java/jni/jniutil/inc
 service/things-manager/sdk/java/jni/tm/inc
 service/things-manager/unittests
 service/scene-manager/include
+extlibs/arduino/arduino-1.5.8/hardware/tools/avr/avr/include

@@ -93,15 +93,25 @@ OCEntityHandlerResult entityHandlerCb(std::shared_ptr<OCResourceRequest> request
                     }
                 }*/
 
-                std::cout << "\t\t\trequestType : GET\n";
-                pResponse->setErrorCode(200);
-                pResponse->setResponseResult(OC_EH_OK);
-                pResponse->setResourceRepresentation(rep);
-                if(OC_STACK_OK == OCPlatform::sendResponse(pResponse))
-                {
-                    ehResult = OC_EH_OK;
-                }
+            }
 
+            if(requestType == "POST")
+            {
+                std::cout << "RequestType is POST" << std::endl;
+
+            }
+
+            if(requestType == "PUT")
+            {
+                std::cout << "requestType is PUT" << std::endl;
+            }
+
+            pResponse->setErrorCode(200);
+            pResponse->setResponseResult(OC_EH_OK);
+            pResponse->setResourceRepresentation(rep);
+            if(OC_STACK_OK == OCPlatform::sendResponse(pResponse))
+            {
+                ehResult = OC_EH_OK;
             }
         }
     }
@@ -117,11 +127,11 @@ void registerLocalResources()
     std::string resourceURI_button = "/a/button";
     std::string resourceTypeName_button = "oic.r.button";
     std::string resourceInterface = DEFAULT_INTERFACE;
-    uint8_t resourceProperty = OC_DISCOVERABLE;
+    uint8_t resourceProperty = OC_DISCOVERABLE | OC_OBSERVABLE;
 
     EntityHandler cb = std::bind(&entityHandlerCb, std::placeholders::_1);
 
-    /*OCStackResult result = OCPlatform::registerResource(g_curResource_t,
+   /* OCStackResult result = OCPlatform::registerResource(g_curResource_t,
                            resourceURI_thermostat,
                            resourceTypeName_thermostat,
                            resourceInterface,

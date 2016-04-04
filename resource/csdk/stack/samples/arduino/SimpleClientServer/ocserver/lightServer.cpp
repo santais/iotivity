@@ -193,7 +193,7 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
             {
 
                 power = current->value.data.b;
-                OIC_LOG_V(DEBUG, TAG, "Power value received is: %s", power ? "true" : "false");
+                //OIC_LOG_V(DEBUG, TAG, "Power value received is: %s", power ? "true" : "false");
 
                 if(attribute)
                 {
@@ -203,7 +203,7 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
             else if (strcmp(current->name, "brightness") == 0)
             {
                 brightness = current->value.data.i;
-                OIC_LOG_V(DEBUG, TAG, "Brightness value set to: %i", brightness);
+                //OIC_LOG_V(DEBUG, TAG, "Brightness value set to: %i", brightness);
 
                 if(attribute)
                 {

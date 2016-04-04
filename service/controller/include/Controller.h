@@ -32,7 +32,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "ResourceTypes.h"
+#include "resource_types.h"
 
 #include "OCPlatform.h"
 #include "OCApi.h"
@@ -44,9 +44,10 @@
 #include "RCSRemoteResourceObject.h"
 #include "RCSDiscoveryManager.h"
 
+#include "ResourceObject.hpp"
+
 // Scene-manager
 #include "SceneList.h"
-
 
 
 namespace OIC { namespace Service
@@ -58,6 +59,7 @@ namespace OIC { namespace Service
 
     const std::string HOSTING_TAG = "/hosting";
     const auto HOSTING_TAG_SIZE = HOSTING_TAG.size();
+
 
     enum class SceneState
     {
@@ -241,11 +243,18 @@ namespace OIC { namespace Service
           */
         OCStackResult printResourceData(RCSRemoteResourceObject::Ptr resource);
 
+        /**
+         * @brief getControllerResourceObjCallback  Called by the ResourceObject to invoke a change
+         *                                          in the specific resource
+         * @return
+         */
+        ResourceObject::ResourceObjectCallback getControllerResourceObjCallback();
+
     private:
 		/**
 		  * Map containing all discovered resources. 
 		  */
-        std::unordered_map<ResourceKey, RCSRemoteResourceObject::Ptr> m_resourceList;
+        std::unordered_map<ResourceKey, ResourceObject::Ptr> m_resourceList;
 
         /**
           * Mutex locking a discovered resource until it has been added to the map.
@@ -281,6 +290,11 @@ namespace OIC { namespace Service
          * @brief m_sceneState Current active scene state.
          */
         SceneState m_sceneState;
+
+        /**
+          * Callback inovked during a change in a registered resource;
+          */
+        ResourceObject::ResourceObjectCallback m_resourceObjectCallback;
 
 
 	private:
@@ -430,6 +444,14 @@ namespace OIC { namespace Service
          * @param eCode Result of the scene execution.
          */
         void executeSceneCallback(int eCode);
+
+
+        /**
+         * @brief resourceObjectCallback Callback invoked when a new request for a resource is invoked.
+         * @param resource      The resource that has been changed
+         * @param state         The type of change that occured
+         */
+        void resourceObjectCallback(const RCSResourceAttributes &attrs, const ResourceObjectState &state, const ResourceDeviceType &type);
 
 	protected:
 

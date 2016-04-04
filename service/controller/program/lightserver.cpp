@@ -299,9 +299,14 @@ private:
                     ObservationInfo observationInfo = request->getObservationInfo();
                     if(ObserveAction::ObserveRegister == observationInfo.action)
                     {
+                        cout << "\t\trequestFlag : Register Observer\n";
                         gUnderObservation = true;
                     }
-                    cout << "\t\trequestFlag : Observer\n";
+                    else if(ObserveAction::ObserveUnregister == observationInfo.action)
+                    {
+                        gUnderObservation = false;
+                        cout << "\t\trequestFlag : Degister Observer\n";
+                    }
                 }
             }
         }
@@ -356,7 +361,7 @@ int main()
 
         while(OCProcess() == OC_STACK_OK)
         {
-            sleep(0.1);
+            sleep(0.5);
         }
     }
     catch (OCException e)
