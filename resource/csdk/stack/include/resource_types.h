@@ -34,7 +34,7 @@ const static char* OIC_DEVICE_SENSOR                     = "oic.d.sensor";
 const static char* OIC_DEVICE_BUTTON                     = "oic.d.button";
 const static char* OIC_DEVICE_TV                         = "oic.d.tv";
 const static char* OIC_DEVICE_THERMOSTAT                 = "oic.d.theromstat";
-
+const static char* OIC_DEVICE_FAN                        = "oic.d.fan";
 // More toc ome...
 
 //
