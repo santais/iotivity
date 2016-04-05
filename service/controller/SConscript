@@ -55,7 +55,7 @@ controller_env.AppendUnique(CPPPATH = ['../../resource/include'])
 controller_env.AppendUnique(CPPPATH = ['../../resource/csdk/stack/include'])
 
 # wiringPi
-controller_env.AppendUnique(CPPPATH = ['/home/pi/Documents/wiringPi/wiringPi'])
+#controller_env.AppendUnique(CPPPATH = ['/home/pi/Documents/wiringPi/wiringPi'])
 
 
 # RD
@@ -75,8 +75,8 @@ controller_env.AppendUnique(LIBS = [
     'octbstack',
     'oc_logger',
     'connectivity_abstraction',
-    'libcoap',
-    'wiringPi'
+    'libcoap'
+    #'wiringPi'
     ])
 
 controller_env.PrependUnique(LIBS = 'resource_directory')
