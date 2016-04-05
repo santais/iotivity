@@ -82,4 +82,4 @@ rd_env.UserInstallTargetHeader('/include/rd_server.h', 'service/resource-directo
 ######################################################################
 # Samples for the resource directory
 ######################################################################
-SConscript('samples/SConscript')
+#SConscript('samples/SConscript')
