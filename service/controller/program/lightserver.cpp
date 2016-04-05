@@ -32,6 +32,7 @@
 
 #include "OCPlatform.h"
 #include "OCApi.h"
+#include "ResourceTypes.h"
 
 using namespace OC;
 using namespace std;
@@ -40,6 +41,7 @@ namespace PH = std::placeholders;
 int gObservation = 0;
 void * ChangeLightRepresentation(void *param);
 void * handleSlowResponse(void *param, std::shared_ptr< OCResourceRequest > pRequest);
+bool gUnderObservation = false;
 
 // Specifies secure or non-secure
 // false: non-secure resource
@@ -59,7 +61,7 @@ class LightResource
 
 public:
     /// Access this property from a TB client
-    std::string m_power;
+    bool m_power;
     std::string m_lightUri;
     OCResourceHandle m_resourceHandle;
     OCRepresentation m_lightRep;
@@ -67,7 +69,7 @@ public:
 public:
     /// Constructor
     LightResource() :
-            m_power(""), m_lightUri("/a/light"), m_resourceHandle(0)
+            m_power(false), m_lightUri("/a/light"), m_resourceHandle(0)
     {
         // Initialize representation
         m_lightRep.setUri(m_lightUri);
@@ -90,6 +92,8 @@ public:
         // This will internally create and register the resource.
         OCStackResult result = OCPlatform::registerResource(m_resourceHandle, resourceURI,
                 resourceTypeName, resourceInterface, cb, OC_DISCOVERABLE | OC_OBSERVABLE);
+
+        result = OCPlatform::bindTypeToResource(m_resourceHandle, OIC_TYPE_BINARY_SWITCH);
 
         if (OC_STACK_OK != result)
         {
@@ -128,16 +132,16 @@ public:
             switch(values->type)
             {
                 case OCREP_PROP_INT:
-                    std::cout << values->i << std::endl;
+                    std::cout << "INT: " << values->i << std::endl;
                 break;
                 case OCREP_PROP_DOUBLE:
-                    std::cout << values->d << std::endl;
+                    std::cout << "DOUBLE: " << values->d << std::endl;
                 break;
                 case OCREP_PROP_BOOL:
-                    std::cout << std::boolalpha <<  values->b << std::endl;
+                    std::cout << "BOOL: " << std::boolalpha <<  values->b << std::endl;
                 break;
                 case OCREP_PROP_STRING:
-                    std::cout << values->str << std::endl;
+                    std::cout << "STRING: " << values->str << std::endl;
                 break;
 
             }
@@ -148,12 +152,14 @@ public:
         {
             if (rep.getValue("power", m_power))
             {
-                cout << "\t\t\t\t" << "power: " << m_power << endl;
+                cout << "\t\t\t\t" << "power: " << std::boolalpha << m_power << endl;
             }
             else
             {
                 cout << "\t\t\t\t" << "power not found in the representation" << endl;
             }
+
+            OCPlatform::notifyAllObservers(m_resourceHandle);
         }
         catch (exception& e)
         {
@@ -205,7 +211,7 @@ private:
 // Entity handler can be implemented in several ways by the manufacturer
     OCEntityHandlerResult entityHandler(std::shared_ptr< OCResourceRequest > request)
     {
-        cout << "\tIn Server CPP entity handler:\n";
+        //cout << "\tIn Server CPP entity handler:\n";
         OCEntityHandlerResult ehResult = OC_EH_ERROR;
         if (request)
         {
@@ -215,7 +221,7 @@ private:
 
             if (requestFlag & RequestHandlerFlag::RequestFlag)
             {
-                cout << "\t\trequestFlag : Request\n";
+                //cout << "\t\trequestFlag : Request\n";
                 auto pResponse = std::make_shared< OC::OCResourceResponse >();
                 pResponse->setRequestHandle(request->getRequestHandle());
                 pResponse->setResourceHandle(request->getResourceHandle());
@@ -223,7 +229,7 @@ private:
                 // If the request type is GET
                 if (requestType == "GET")
                 {
-                    cout << "\t\t\trequestType : GET\n";
+                    //cout << "\t\t\trequestType : GET\n";
                     if (isSlowResponse) // Slow response case
                     {
                         static int startedThread = 0;
@@ -248,7 +254,7 @@ private:
                 }
                 else if (requestType == "PUT")
                 {
-                    cout << "\t\t\trequestType : PUT\n";
+                    //cout << "\t\t\trequestType : PUT\n";
                     OCRepresentation rep = request->getResourceRepresentation();
 
                     // Do related operations related to PUT request
@@ -264,7 +270,7 @@ private:
                 }
                 else if (requestType == "POST")
                 {
-                    cout << "\t\t\trequestType : POST\n";
+                    //cout << "\t\t\trequestType : POST\n";
 
                     OCRepresentation rep = request->getResourceRepresentation();
 
@@ -287,6 +293,20 @@ private:
                 else if (requestType == "DELETE")
                 {
                     // DELETE request operations
+                }
+                if (requestFlag & RequestHandlerFlag::ObserverFlag)
+                {
+                    ObservationInfo observationInfo = request->getObservationInfo();
+                    if(ObserveAction::ObserveRegister == observationInfo.action)
+                    {
+                        cout << "\t\trequestFlag : Register Observer\n";
+                        gUnderObservation = true;
+                    }
+                    else if(ObserveAction::ObserveUnregister == observationInfo.action)
+                    {
+                        gUnderObservation = false;
+                        cout << "\t\trequestFlag : Degister Observer\n";
+                    }
                 }
             }
         }
@@ -339,14 +359,10 @@ int main()
         // Invoke createResource function of class light.
         myLight.createResource();
 
-        // A condition variable will free the mutex it is given, then do a non-
-        // intensive block until 'notify' is called on it.  In this case, since we
-        // don't ever call cv.notify, this should be a non-processor intensive version
-        // of while(true);
-        std::mutex blocker;
-        std::condition_variable cv;
-        std::unique_lock < std::mutex > lock(blocker);
-        cv.wait(lock);
+        while(OCProcess() == OC_STACK_OK)
+        {
+            sleep(0.5);
+        }
     }
     catch (OCException e)
     {

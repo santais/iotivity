@@ -160,7 +160,9 @@ namespace OIC { namespace Service
     Controller::Controller() :
         m_discoverCallback(std::bind(&Controller::foundResourceCallback, this, std::placeholders::_1)),
         m_resourceList(),
-        m_RDStarted(false)
+        m_RDStarted(false),
+        m_resourceObjectCallback(std::bind(&Controller::resourceObjectCallback, this, std::placeholders::_1, std::placeholders::_2,
+                                           std::placeholders::_3))
 	{
         // Set default platform and device information
         Controller::setDeviceInfo();
@@ -222,9 +224,9 @@ namespace OIC { namespace Service
     OCStackResult Controller::start()
     {
         // Start the discoveryManager
-        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, OIC_DEVICE_SENSOR};
+        const std::vector<std::string> types{OIC_DEVICE_LIGHT, OIC_DEVICE_BUTTON, OIC_DEVICE_SENSOR, OIC_DEVICE_FAN, "oic.r.prov"};
 
-        m_discoveryTask = Controller::discoverResource(m_discoverCallback);//, types);
+        m_discoveryTask = Controller::discoverResource(m_discoverCallback, types);
 
         // Start the discovery manager
         return(this->startRD());
@@ -243,16 +245,28 @@ namespace OIC { namespace Service
             m_discoveryTask->cancel();
         }
 
-        /*for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
+        for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
         {
-            if(iterator->second->isCaching())
-                iterator->second->stopCaching();
-            if(iterator->second->isMonitoring())
-                iterator->second->stopMonitoring();
-        }*/
+            try {
+                if(iterator->second->getRemoteResourceObject() != nullptr)
+                {
+                    if(iterator->second->getRemoteResourceObject()->isCaching())
+                    {
+                        iterator->second->getRemoteResourceObject()->stopCaching();
+                    }
+                }
+                else
+                {
+                    std::cerr << "Unable to stop caching for device: " << iterator->first << std::endl;
+                }
+            }
+            catch (RCSException e)
+            {
+                std::cerr << "Failed to stop caching" << std::endl;
+            }
 
-        // DEBUG. TODO: Remove
-        std::cout << "Number of resources instance discovered by stop() call: " << m_resourceList.size() << std::endl;
+            iterator++;
+        }
 
         return result;
     }
@@ -268,7 +282,7 @@ namespace OIC { namespace Service
             OC::ModeType::Both,
             "0.0.0.0", // By setting to "0.0.0.0", it binds to all available interfaces
             0,         // Uses randomly available port
-            OC::QualityOfService::LowQos
+            OC::QualityOfService::HighQos
         };
 
         OCPlatform::Configure(cfg);
@@ -313,6 +327,15 @@ namespace OIC { namespace Service
         }*/
     }
 
+    /**
+     * @brief getControllerResourceObjCallback  Called by the ResourceObject to invoke a change
+     *                                          in the specific resource
+     * @return
+     */
+    ResourceObject::ResourceObjectCallback Controller::getControllerResourceObjCallback()
+    {
+        return this->m_resourceObjectCallback;
+    }
 
      /**
        * @brief Function callback for found resources
@@ -326,21 +349,13 @@ namespace OIC { namespace Service
 
         if(this->isResourceLegit(resource))
         {
-            if(m_resourceList.insert({resource->getUri() + resource->getAddress(), resource}).second)
+            // Make new ResourceObject
+            ResourceObject::Ptr resourceObject = ResourceObject::Ptr(new ResourceObject(resource));
+
+            if(m_resourceList.insert({resource->getUri() + resource->getAddress(), resourceObject}).second)
             {
                 this->printResourceData(resource);
                 this->addResourceToScene(resource);
-
-                // Start caching the resource
-                if(!resource->isCaching())
-                {
-                    resource->startCaching(std::bind(&Controller::cacheUpdateCallback, this, std::placeholders::_1));
-                }
-
-                if(!resource->isMonitoring())
-                {
-                    resource->startMonitoring(std::bind(&Controller::stateChangeCallback, this, std::placeholders::_1));
-                }
 
                 std::cout << "\tAdded device: " << resource->getUri() + resource->getAddress() << std::endl;
                 std::cout << "\tDevice successfully added to the list" << std::endl;
@@ -628,10 +643,10 @@ namespace OIC { namespace Service
 
         for (auto iterator = m_resourceList.begin(); iterator != m_resourceList.end();)
         {
-            ResourceState newState = iterator->second->getState();
+            ResourceState newState = iterator->second->getRemoteResourceObject()->getState();
             if (newState == ResourceState::LOST_SIGNAL || newState == ResourceState::DESTROYED)
             {
-                std::cout << "Removing resource: " << iterator->second->getUri() << std::endl;
+                std::cout << "Removing resource: " << iterator->second->getRemoteResourceObject()->getUri() << std::endl;
                 m_resourceList.erase(iterator++);
             }
             else
@@ -692,8 +707,8 @@ namespace OIC { namespace Service
         {
             if(type.compare(OIC_DEVICE_LIGHT) == 0)
             {
-                m_sceneStart->addNewSceneAction(resource, "power", "on");
-                m_sceneStop->addNewSceneAction(resource, "power", "off");
+                m_sceneStart->addNewSceneAction(resource, "power", true);
+                m_sceneStop->addNewSceneAction(resource, "power", false);
             }
         }
     }
@@ -708,6 +723,52 @@ namespace OIC { namespace Service
         std::cout << __func__ << std::endl;
 
         std::cout << "Result of eCode: " << eCode << std::endl;
+    }
+
+    /**
+     * @brief resourceObjectCallback Callback invoked when a new request for a resource is invoked.
+     * @param resource      The resource that has been changed
+     * @param state         The type of change that occured
+     */
+    void Controller::resourceObjectCallback(const RCSResourceAttributes &attrs, const ResourceObjectState &state, const ResourceDeviceType &deviceType)
+    {
+        switch(state)
+        {
+        case ResourceObjectState::CACHE_CHANGED:
+
+            // If the device is a button, search for the current state
+            if(deviceType == ResourceDeviceType::OIC_BUTTON)
+            {
+                for(auto const &attr : attrs)
+                {
+                    // Simple test scenario turning on/off the LED.
+                    const std::string key = attr.key();
+                    const RCSResourceAttributes::Value value = attr.value();
+                    if(key == "state" && value.toString() == "true")
+                    {
+                        if(m_sceneState == SceneState::START_SCENE)
+                        {
+                            std::cout << "\nSetting Scene State: STOP_SCENE\n";
+                            m_sceneState = SceneState::STOP_SCENE;
+                            m_sceneStop->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                        }
+                        else
+                        {
+                            std::cout << "\nSetting Scene State: START_SCENE\n";
+                            m_sceneState = SceneState::START_SCENE;
+                            m_sceneStart->execute(std::bind(&Controller::executeSceneCallback, this, std::placeholders::_1));
+                        }
+                    }
+                }
+            }
+
+
+            break;
+
+        case ResourceObjectState::PRESENCE_CHANGD:
+
+            break;
+        }
     }
 
 } }

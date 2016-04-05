@@ -59,7 +59,7 @@ class FanResource
 
 public:
     /// Access this property from a TB client
-    std::string m_speed;
+    int m_speed;
     std::string m_fanUri;
     OCResourceHandle m_resourceHandle;
     OCRepresentation m_fanRep;
@@ -67,7 +67,7 @@ public:
 public:
     /// Constructor
     FanResource() :
-            m_speed("10"), m_fanUri("/a/fan"), m_resourceHandle(0)
+            m_speed(10), m_fanUri("/a/fan"), m_resourceHandle(0)
     {
         // Initialize representation
         m_fanRep.setUri(m_fanUri);
@@ -310,14 +310,10 @@ int main()
         // Invoke createResource function of class light.
         myFan.createResource();
 
-        // A condition variable will free the mutex it is given, then do a non-
-        // intensive block until 'notify' is called on it.  In this case, since we
-        // don't ever call cv.notify, this should be a non-processor intensive version
-        // of while(true);
-        std::mutex blocker;
-        std::condition_variable cv;
-        std::unique_lock < std::mutex > lock(blocker);
-        cv.wait(lock);
+        while(OCProcess() == OC_STACK_OK)
+        {
+            sleep(0.5);
+        }
     }
     catch (OCException e)
     {
