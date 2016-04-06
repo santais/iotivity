@@ -19,7 +19,7 @@
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 #include "ocbaseresource.h"
-#include "ResourceTypes.h"
+#include "resource_types.h"
 
 static const int DELAY_TIME_INPUT_THREAD = 100;      // ms
 
@@ -40,13 +40,15 @@ static const char ARDUINO_WIFI_SHIELD_UDP_FW_VER[] = "1.1.0";
 static const char INTEL_WIFI_SHIELD_FW_VER[] = "1.2.0";
 
 /// WiFi network info and credentials
-char ssid[] = "mDNSAP";
-char pass[] = "letmein9";
+char ssid[] = "PussyCat24";
+char pass[] = "benterikpovls";
 
 int ConnectToNetwork()
 {
     char *fwVersion;
     int status = WL_IDLE_STATUS;
+    pinMode(9, OUTPUT);      // set the LED pin mode
+    delay(1000);
     // check for the presence of the shield:
     if (WiFi.status() == WL_NO_SHIELD)
     {
@@ -251,6 +253,8 @@ void setup()
         OIC_LOG(ERROR, TAG, ("Unable to connect to network"));
         return;
     }
+
+    delay(1000);
 
     // Initialize the OC Stack in Server mode
     if (OCInit(NULL, 0, OC_SERVER) != OC_STACK_OK)
