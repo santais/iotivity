@@ -31,6 +31,9 @@ if env.get('RELEASE'):
 else:
 	env.AppendUnique(CCFLAGS = ['-g'])
 
+env.AppendUnique(CFLAGS = ['-Winline'])
+env.AppendUnique(CFLAGS = ['-pipe'])
+
 
 lib_env = env.Clone()
 SConscript(env.get('SRC_DIR') + '/service/third_party_libs.scons', 'lib_env')
@@ -51,6 +54,10 @@ controller_env.AppendUnique(CPPPATH = ['../scene-manager/include', '../scene_man
 controller_env.AppendUnique(CPPPATH = ['../../resource/include'])
 controller_env.AppendUnique(CPPPATH = ['../../resource/csdk/stack/include'])
 
+# wiringPi
+controller_env.AppendUnique(CPPPATH = ['/home/pi/Documents/wiringPi/wiringPi'])
+
+
 # RD
 controller_env.AppendUnique(CPPPATH = ['../resource-directory/include'])
 
@@ -68,7 +75,8 @@ controller_env.AppendUnique(LIBS = [
     'octbstack',
     'oc_logger',
     'connectivity_abstraction',
-    'libcoap'
+    'libcoap',
+    'wiringPi'
     ])
 
 controller_env.PrependUnique(LIBS = 'resource_directory')
@@ -97,10 +105,7 @@ if target_os == 'android':
 ####################################################################
 # Source files and Targets
 ######################################################################
-controller_src = [
-	'src/Controller.cpp',
-	'src/ResourceObject.cpp'
-	]
+controller_src = 'src/Controller.cpp'
 
 Controller_Static = controller_env.StaticLibrary('controller', controller_src)
 Controller_Shared = controller_env.SharedLibrary('controller', controller_src)
