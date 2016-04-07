@@ -32,6 +32,9 @@
 #include <mutex>
 #include <condition_variable>
 
+// RPi GPIO Library
+#include <wiringPi.h>
+
 #include "OCPlatform.h"
 #include "OCApi.h"
 
@@ -39,8 +42,11 @@ using namespace OC;
 using namespace std;
 namespace PH = std::placeholders;
 
+const int BUTTON_PIN = 15;
+
 int gObservation = 0;
 bool gUnderObservation = false;
+bool gNewButtonVal = true;
 pthread_t buttonInputThread;
 void * ChangeLightRepresentation(void *param);
 void * handleSlowResponse(void *param, std::shared_ptr< OCResourceRequest > pRequest);
@@ -269,14 +275,10 @@ private:
                 ObservationInfo observationInfo = request->getObservationInfo();
                 if(ObserveAction::ObserveRegister == observationInfo.action)
                 {
-                    cout << "\t\trequestFlag : Observer\n";
+		    std::cout << "Setting observer state true" << std::endl;
                     gUnderObservation = true;
                 }
-                else if(ObserveAction::ObserveUnregister == observationInfo.action)
-                {
-                    gUnderObservation = false;
-                    cout << "\t\trequestFlag : Degister Observer\n";
-                }
+                cout << "\t\trequestFlag : Observer\n";
             }
         }
         else
@@ -313,25 +315,36 @@ void * checkButtonInput(void * param)
 {
     ButtonResource* buttonPtr = (ButtonResource*) param;
     static bool prevValue = false;
-
+    std::cout << "Starting Button Input Thread" << std::endl;
     for(;;)
     {
         if(gUnderObservation)
         {
-            OCStackResult result = OC_STACK_OK;
-            //bool newValue = digitalRead(5);
-            bool newValue = true;
+            OCStackResult result = OC_STACK_ERROR;
+            bool newValue = digitalRead(BUTTON_PIN);
+	    sleep(0.2);
             if(newValue != prevValue)
             {
-                result = OCPlatform::notifyAllObservers(buttonPtr->getHandle());
+		std::cout << "Button state changed" << std::endl;
+ 		std::cout << "Handle to notify: " << buttonPtr->getHandle() << std::endl;
+		buttonPtr->m_state = newValue;
+		result = OCPlatform::notifyAllObservers(buttonPtr->getHandle());
                 prevValue = newValue;
             }
 
             if(OC_STACK_NO_OBSERVERS == result)
             {
+		std::cout << "No more observers!" << std::endl;
                 gUnderObservation = false;
             }
+
+  	    if(result == OC_STACK_OK) 
+	    {
+
+	        std::cout << "Notified observers successfully" << std::endl;
+            }		
         }
+	sleep(0.01);	
     }
 
     return NULL;
@@ -356,8 +369,12 @@ int main()
         // Invoke createResource function of class light.
         myButton.createResource();
 
+        // Setup the pins of the button
+        wiringPiSetup  ();
+        pinMode(BUTTON_PIN, INPUT);
+
         // Start input button resource
-        //pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
+        pthread_create(&buttonInputThread, NULL, checkButtonInput, &myButton);
 
         while(OCProcess() == OC_STACK_OK)
         {
