@@ -26,21 +26,35 @@ arduino_simplecs_env = env.Clone()
 ######################################################################
 # Build flags
 ######################################################################
+ES_SRC = '../../../../../../../service/easy-setup'
+
 arduino_simplecs_env.PrependUnique(CPPPATH = [
 		'../../../../../logger/include',
 		'../../../../../stack/include',
 		'../../../../../stack/include/internal',
 		'../../../../../connectivity/api',
-		'../../../../../../oc_logger/include'
+		'../../../../../../oc_logger/include',
+		ES_SRC + '/inc',
+		ES_SRC + '/enrollee/inc',
+		ES_SRC + '/enrollee/arduino/wifi',
+		ES_SRC + '/enrollee/src'
 		])
+
+print('LOL')
 
 arduino_simplecs_env.AppendUnique(LIBPATH = [env.get('BUILD_DIR')])
 arduino_simplecs_env.AppendUnique(CPPDEFINES = ['TB_LOG'])
 
-arduino_simplecs_env.PrependUnique(LIBS = ['octbstack', 'ocsrm', 'connectivity_abstraction', 'coap'])
+if 'enrollee' in env.get('ES_ROLE'):
+	arduino_simplecs_env.PrependUnique(LIBS = ['octbstack', 'ocsrm', 'connectivity_abstraction', 'coap', 'ESEnrolleeSDK'])
+else:
+	arduino_simplecs_env.PrependUnique(LIBS = ['octbstack', 'ocsrm', 'connectivity_abstraction', 'coap'])
 
 if 'arduino_due_x' in env.get('BOARD'):
-	arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', 'lightServer.cpp',)
+	if 'WIFI' in env.get('SHIELD'):
+		arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', 'lightServerWiFi.cpp')
+	elif 'ETH' in env.get('SHIELD'):
+		arduino_simplecs = arduino_simplecs_env.Program('SimpleClientServer', 'lightServerEthernet.cpp')
 if 'mega' in env.get('BOARD'):
 	arduino_simplecs = arduino_simplecs_env.Program('SimpleTemperatureServer', 'temperatureServer.cpp')
 env.CreateBin('SimpleClientServer')

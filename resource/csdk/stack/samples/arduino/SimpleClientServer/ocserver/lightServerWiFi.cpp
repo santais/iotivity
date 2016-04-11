@@ -18,105 +18,44 @@
 //
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#include <malloc.h>
-
 #include "ocbaseresource.h"
-#include "ResourceTypes.h"
+#include "resource_types.h"
+#include "easysetup.h"
 
-static const int DELAY_TIME_INPUT_THREAD = 100;      // ms
+static const int DELAY_TIME_INPUT_THREAD = 1000;      // ms
 
 // Blinking LED
 static const char LED_PIN = 13;
 static const char TEST_LED_PIN = 5; // PWM Pin
 
+/**
+ * @var g_OnBoardingSucceeded
+ * @brief This variable will be set if OnBoarding is successful
+ */
+static bool g_OnBoardingSucceeded = false;
+
+/**
+ * @var g_ProvisioningSucceeded
+ * @brief This variable will be set if Provisioning is successful
+ */
+static bool g_ProvisioningSucceeded = false;
+
+
 #define TAG "ArduinoServer"
 
-#ifdef ARDUINOWIFI
+// Functions
+void EventCallbackInApp(ESResult esResult, ESEnrolleeState enrolleeState);
+ESResult StartEasySetup();
+void ESInitResources();
+void createLightResource();
+
 // Arduino WiFi Shield
 // Note : Arduino WiFi Shield currently does NOT support multicast and therefore
 // this server will NOT be listening on 224.0.1.187 multicast address.
 
-static const char ARDUINO_WIFI_SHIELD_UDP_FW_VER[] = "1.1.0";
-	
-/// WiFi Shield firmware with Intel patches
-static const char INTEL_WIFI_SHIELD_FW_VER[] = "1.2.0";
-
 /// WiFi network info and credentials
-char ssid[] = "mDNSAP";
-char pass[] = "letmein9";
-
-int ConnectToNetwork()
-{
-    char *fwVersion;
-    int status = WL_IDLE_STATUS;
-    // check for the presence of the shield:
-    if (WiFi.status() == WL_NO_SHIELD)
-    {
-        OIC_LOG(ERROR, TAG, ("WiFi shield not present"));
-        return -1;
-    }
-
-    // Verify that WiFi Shield is running the firmware with all UDP fixes
-    fwVersion = WiFi.firmwareVersion();
-    OIC_LOG_V(INFO, TAG, "WiFi Shield Firmware version %s", fwVersion);
-    if ( strncmp(fwVersion, ARDUINO_WIFI_SHIELD_UDP_FW_VER, sizeof(ARDUINO_WIFI_SHIELD_UDP_FW_VER)) !=0 )
-    {
-        OIC_LOG(DEBUG, TAG, ("!!!!! Upgrade WiFi Shield Firmware version !!!!!!"));
-        return -1;
-    }
-
-    // attempt to connect to Wifi network:
-    while (status != WL_CONNECTED)
-    {
-        OIC_LOG_V(INFO, TAG, "Attempting to connect to SSID: %s", ssid);
-        status = WiFi.begin(ssid,pass);
-
-        // wait 10 seconds for connection:
-        delay(10000);
-    }
-    OIC_LOG(DEBUG, TAG, ("Connected to wifi"));
-
-    IPAddress ip = WiFi.localIP();
-    OIC_LOG_V(INFO, TAG, "IP Address:  %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-    return 0;
-}
-#else
-// Arduino Ethernet Shield
-int ConnectToNetwork()
-{
-    // Note: ****Update the MAC address here with your shield's MAC address****
-    uint8_t ETHERNET_MAC[] = {0x90, 0xA2, 0xDA, 0x10, 0x29, 0xE2}; 
-    uint8_t error = Ethernet.begin(ETHERNET_MAC);
-    if (error  == 0)
-    {
-        OIC_LOG_V(ERROR, TAG, "error is: %d", error);
-        return -1;
-    }
-
-    IPAddress ip = Ethernet.localIP();
-    OIC_LOG_V(INFO, TAG, "IP Address:  %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-    return 0;
-}
-#endif //ARDUINOWIFI
-
-// On Arduino Atmel boards with Harvard memory architecture, the stack grows
-// downwards from the top and the heap grows upwards. This method will print
-// the distance(in terms of bytes) between those two.
-// See here for more details :
-// http://www.atmel.com/webdoc/AVRLibcReferenceManual/malloc_1malloc_intro.html
-void PrintArduinoMemoryStats()
-{
-    //#ifdef ARDUINO_AVR_MEGA2560
-    //This var is declared in avr-libc/stdlib/malloc.c
-    //It keeps the largest address not allocated for heap
-    extern char *__brkval;
-    //address of tmp gives us the current stack boundry
-    int tmp;
-    OIC_LOG_V(INFO, TAG, "Stack: %u         Heap: %u", (unsigned int)&tmp, (unsigned int)__brkval);
-    OIC_LOG_V(INFO, TAG, "Unallocated Memory between heap and stack: %u",
-            ((unsigned int)&tmp - (unsigned int)__brkval));
-   // #endif
-}
+char g_ssid[] = "EasySetup123";
+char g_pass[] = "EasySetup123";
 
 void printAttribute(OCAttributeT *attributes)
 {
@@ -183,69 +122,132 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
 {
     if(IOType == OUTPUT)
     {
+        bool power(false);
+        int brightness(0);
        // OIC_LOG(DEBUG, TAG, "LightIOHandler: OUTPUT");
         OCAttributeT *current = attribute;
         while(current != NULL)
         {
+            //OIC_LOG_V(DEBUG, TAG, "Attribute name: %s", current->name);
             //OIC_LOG(DEBUG, TAG, "Searching light");
             if(strcmp(current->name, "power") == 0)
             {
 
-                char* value = current->value.data.str;
-                OIC_LOG_V(DEBUG, TAG, "Value received is: %s", value ? "true" : "false");
-                if(strcmp(value, "on"))
-                {
-                    digitalWrite(attribute->port->pin, LOW);
-                }
-                else if (strcmp(value, "off"))
-                {
-                    digitalWrite(attribute->port->pin, HIGH);
-                }
+                power = current->value.data.b;
+                //OIC_LOG_V(DEBUG, TAG, "Power value received is: %s", power ? "true" : "false");
 
                 if(attribute)
                 {
-                    //*((char**)attribute->value.data) = value;
-                    attribute->value.data.str = value;
+                    attribute->value.data.b = power;
                 }
+            }
+            else if (strcmp(current->name, "brightness") == 0)
+            {
+                brightness = current->value.data.i;
+                //OIC_LOG_V(DEBUG, TAG, "Brightness value set to: %i", brightness);
 
-                if(*underObservation)
+                if(attribute)
                 {
-                    OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
-                    OCNotifyAllObservers(handle, OC_LOW_QOS);
+                    attribute->value.data.i = brightness;
                 }
             }
 
             current = current->next;
         }
+        if(power)
+        {
+            analogWrite(attribute->port->pin, brightness);
+        }
+        else
+        {
+            analogWrite(attribute->port->pin, 0);
+        }
+
+        if(*underObservation)
+        {
+            OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
+            if(OCNotifyAllObservers(handle, OC_LOW_QOS) == OC_STACK_NO_OBSERVERS)
+            {
+                OIC_LOG(DEBUG, TAG, "No more observers!");
+                *underObservation = false;
+            }
+        }
     }
-   // OIC_LOG(DEBUG, TAG, "Leaving light handler");
 }
 
-
-//The setup function is called once at startup of the sketch
-void setup()
+void EventCallbackInApp(ESResult esResult, ESEnrolleeState enrolleeState)
 {
-    // Add your initialization code here
-    // Note : This will initialize Serial port on Arduino at 115200 bauds
-   	OIC_LOG_INIT();
-    OIC_LOG(DEBUG, TAG, ("OCServer is starting..."));
+    Serial.println("callback!!! in app");
 
-
-    // Connect to Ethernet or WiFi network
-    if (ConnectToNetwork() != 0)
+    if(esResult == ES_OK)
     {
-    	Serial.print("Unable to connect to Network");
-        OIC_LOG(ERROR, TAG, ("Unable to connect to network"));
-        return;
+        if(!g_OnBoardingSucceeded){
+            Serial.println("Device is successfully OnBoarded");
+            g_OnBoardingSucceeded = true;
+        }
+        else if(g_OnBoardingSucceeded & enrolleeState == ES_ON_BOARDED_STATE){
+            Serial.println("Device is successfully OnBoared with SoftAP");
+            g_ProvisioningSucceeded = true;
+        }
+
+        if(enrolleeState == ES_PROVISIONED_STATE && esResult == ES_OK)
+        {
+            // Create the Light resource.
+            createLightResource();
+        }
     }
+    else if (esResult == ES_ERROR)
+    {
+        if(g_OnBoardingSucceeded)
+        {
+            OIC_LOG_V(ERROR, TAG, "Failure in Provisioning. \
+                                        Current Enrollee State: %d",enrolleeState);
+            g_OnBoardingSucceeded = false;
+        }
+        else if(g_ProvisioningSucceeded)
+        {
+            OIC_LOG_V(ERROR, TAG, "Failure in connect to target network. \
+                                        Current Enrollee State: %d",enrolleeState);
+            g_ProvisioningSucceeded = false;
+        }
+    }
+}
+
+void startProvisioning()
+{
+    OIC_LOG(DEBUG, TAG, "ESInitResources is invoked...");
 
     // Initialize the OC Stack in Server mode
     if (OCInit(NULL, 0, OC_SERVER) != OC_STACK_OK)
     {
-        OIC_LOG(ERROR, TAG, ("OCStack init error"));
+        OIC_LOG(ERROR, TAG, "OCStack init error!!");
         return;
     }
 
+    if (ESInitProvisioning() == ES_ERROR)
+    {
+        OIC_LOG(ERROR, TAG, "Init Provisioning Failed!!");
+        return;
+    }
+}
+
+ESResult StartEasySetup()
+{
+    OIC_LOG(DEBUG, TAG, "OCServer is starting...");
+
+    //ESInitEnrollee with sercurity mode disabled for arduino
+    if(ESInitEnrollee(CT_ADAPTER_IP, g_ssid, g_pass, false, EventCallbackInApp) == ES_ERROR)
+    {
+        OIC_LOG(ERROR, TAG, "OnBoarding Failed");
+        return ES_ERROR;
+    }
+
+    OIC_LOG_V(ERROR, TAG, "OnBoarding succeded. Successfully connected to ssid : %s",ssid);
+    return ES_OK;
+}
+
+void createLightResource()
+{
     // DEBUG PIN
     pinMode(LED_PIN, OUTPUT);
 
@@ -263,11 +265,11 @@ void setup()
     portLight.type = OUT;
 
     ResourceData power;
-    power.b = false;
+    power.b = true;
     addAttribute(&resourceLight->attribute, "power", power, BOOL, &portLight);
 
     ResourceData brightness;
-    brightness.i = 0;
+    brightness.i = 255;
     addAttribute(&resourceLight->attribute, "brightness", brightness, INT, &portLight);
 
     printResource(resourceLight);
@@ -275,7 +277,23 @@ void setup()
     OIC_LOG(DEBUG, TAG, "Finished setup");
 }
 
-// The loop function is called in an endless loop
+
+//The setup function is called once at startup of the sketch
+void setup()
+{
+    // Add your initialization code here
+    // Note : This will initialize Serial port on Arduino at 115200 bauds
+   	OIC_LOG_INIT();
+    OIC_LOG(DEBUG, TAG, ("OCServer is starting..."));
+
+    // Start the onboarding process
+    while(StartEasySetup() != ES_OK);
+
+    // Start provisioning
+    startProvisioning();
+}
+
+// The loop function is caplled in an endless loop
 void loop()
 {
     // This artificial delay is kept here to avoid endless spinning

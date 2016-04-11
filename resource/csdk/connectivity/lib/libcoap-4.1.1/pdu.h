@@ -398,7 +398,7 @@ int coap_pdu_parse(unsigned char *data, size_t length, coap_pdu_t *pdu,
 
 #ifdef WITH_TCP
 /**
- * Get total pdu size including header + option + payload (with marker) from pdu data.
+ * Get total message length from header.
  *
  * @param data   The raw data to parse as CoAP PDU.
  * @param size   payload size of pdu.
@@ -407,8 +407,7 @@ int coap_pdu_parse(unsigned char *data, size_t length, coap_pdu_t *pdu,
 size_t coap_get_total_message_length(const unsigned char *data, size_t size);
 
 /**
- * Get transport type of coap header for coap over tcp
- * through payload size(including payload marker) + option size.
+ * Get transport type of coap header for coap over tcp through payload size.
  *
  * @param size   payload size of pdu.
  * @return The transport type.
@@ -416,8 +415,7 @@ size_t coap_get_total_message_length(const unsigned char *data, size_t size);
 coap_transport_type coap_get_tcp_header_type_from_size(unsigned int size);
 
 /**
- * Get transport type of coap header for coap over tcp
- * through first nibble(0~E) of init-byte .
+ * Get transport type of coap header for coap over tcp through init-byte.
  *
  * @param legnth   length value of init byte.
 * @return The transport type.
@@ -425,8 +423,7 @@ coap_transport_type coap_get_tcp_header_type_from_size(unsigned int size);
 coap_transport_type coap_get_tcp_header_type_from_initbyte(unsigned int length);
 
 /**
- * Add length of option/payload into 'Len+ byte...' field of coap header
- * for coap over tcp.
+ * Add length value in field of coap header for coap over tcp.
  *
  * @param pdu  The pdu pointer.
  * @param transport The transport type.
@@ -436,7 +433,7 @@ void coap_add_length(const coap_pdu_t *pdu, coap_transport_type transport,
                      unsigned int length);
 
 /**
- * Get the length of option/payload field of coap header for coap over tcp.
+ * Get the value of length field of coap header for coap over tcp.
  *
  * @param pdu  The pdu pointer.
  * @param transport The transport type.
@@ -445,16 +442,15 @@ void coap_add_length(const coap_pdu_t *pdu, coap_transport_type transport,
 unsigned int coap_get_length(const coap_pdu_t *pdu, coap_transport_type transport);
 
 /**
- * Get the length of option/payload field of coap header for coap over tcp.
+ * Get pdu length from header of coap over tcp.
  *
  * @param header   The header to parse.
  * @return transport The transport type.
  */
-unsigned int coap_get_length_from_header(const unsigned char *header,
-                                         coap_transport_type transport);
+unsigned int coap_get_length_from_header(const unsigned char *header, coap_transport_type transport);
 
 /**
- * Get length of header including len, TKL, Len+bytes, Code, token bytes for coap over tcp.
+ * Get length of header for coap over tcp.
  *
  * @param data   The raw data to parse as CoAP PDU
  * @return header length + token length
@@ -462,8 +458,7 @@ unsigned int coap_get_length_from_header(const unsigned char *header,
 unsigned int coap_get_tcp_header_length(unsigned char *data);
 
 /**
- * Get length of header including len, TKL, Len+bytes, Code
- * without token bytes for coap over tcp.
+ * Get length of header without token length for coap over tcp.
  *
  * @param transport The transport type.
  * @return header length.

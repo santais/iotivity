@@ -18,10 +18,8 @@
 //
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#include <malloc.h>
-
 #include "ocbaseresource.h"
-#include "ResourceTypes.h"
+#include "resource_types.h"
 
 static const int DELAY_TIME_INPUT_THREAD = 100;      // ms
 
@@ -37,18 +35,20 @@ static const char TEST_LED_PIN = 5; // PWM Pin
 // this server will NOT be listening on 224.0.1.187 multicast address.
 
 static const char ARDUINO_WIFI_SHIELD_UDP_FW_VER[] = "1.1.0";
-	
+    
 /// WiFi Shield firmware with Intel patches
 static const char INTEL_WIFI_SHIELD_FW_VER[] = "1.2.0";
 
 /// WiFi network info and credentials
-char ssid[] = "mDNSAP";
-char pass[] = "letmein9";
+char ssid[] = "EasySetup123";
+char pass[] = "EasySetup123";
 
 int ConnectToNetwork()
 {
     char *fwVersion;
     int status = WL_IDLE_STATUS;
+    pinMode(9, OUTPUT);      // set the LED pin mode
+    delay(1000);
     // check for the presence of the shield:
     if (WiFi.status() == WL_NO_SHIELD)
     {
@@ -183,42 +183,57 @@ void lightIOHandler(OCAttributeT *attribute, int IOType, OCResourceHandle handle
 {
     if(IOType == OUTPUT)
     {
+        bool power(false);
+        int brightness(0);
        // OIC_LOG(DEBUG, TAG, "LightIOHandler: OUTPUT");
         OCAttributeT *current = attribute;
         while(current != NULL)
         {
+            //OIC_LOG_V(DEBUG, TAG, "Attribute name: %s", current->name);
             //OIC_LOG(DEBUG, TAG, "Searching light");
             if(strcmp(current->name, "power") == 0)
             {
 
-                char* value = current->value.data.str;
-                OIC_LOG_V(DEBUG, TAG, "Value received is: %s", value ? "true" : "false");
-                if(strcmp(value, "on"))
-                {
-                    digitalWrite(attribute->port->pin, LOW);
-                }
-                else if (strcmp(value, "off"))
-                {
-                    digitalWrite(attribute->port->pin, HIGH);
-                }
+                power = current->value.data.b;
+                //OIC_LOG_V(DEBUG, TAG, "Power value received is: %s", power ? "true" : "false");
 
                 if(attribute)
                 {
-                    //*((char**)attribute->value.data) = value;
-                    attribute->value.data.str = value;
+                    attribute->value.data.b = power;
                 }
+            }
+            else if (strcmp(current->name, "brightness") == 0)
+            {
+                brightness = current->value.data.i;
+                //OIC_LOG_V(DEBUG, TAG, "Brightness value set to: %i", brightness);
 
-                if(*underObservation)
+                if(attribute)
                 {
-                    OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
-                    OCNotifyAllObservers(handle, OC_LOW_QOS);
+                    attribute->value.data.i = brightness;
                 }
             }
 
             current = current->next;
         }
+        if(power)
+        {
+            analogWrite(attribute->port->pin, brightness);
+        }
+        else
+        {
+            analogWrite(attribute->port->pin, 0);
+        }
+
+        if(*underObservation)
+        {
+            OIC_LOG(DEBUG, TAG, "LIGHT: Notifying observers");
+            if(OCNotifyAllObservers(handle, OC_LOW_QOS) == OC_STACK_NO_OBSERVERS)
+            {
+                OIC_LOG(DEBUG, TAG, "No more observers!");
+                *underObservation = false;
+            }
+        }
     }
-   // OIC_LOG(DEBUG, TAG, "Leaving light handler");
 }
 
 
@@ -227,17 +242,19 @@ void setup()
 {
     // Add your initialization code here
     // Note : This will initialize Serial port on Arduino at 115200 bauds
-   	OIC_LOG_INIT();
+    OIC_LOG_INIT();
     OIC_LOG(DEBUG, TAG, ("OCServer is starting..."));
 
 
     // Connect to Ethernet or WiFi network
     if (ConnectToNetwork() != 0)
     {
-    	Serial.print("Unable to connect to Network");
+        Serial.print("Unable to connect to Network");
         OIC_LOG(ERROR, TAG, ("Unable to connect to network"));
         return;
     }
+
+    delay(1000);
 
     // Initialize the OC Stack in Server mode
     if (OCInit(NULL, 0, OC_SERVER) != OC_STACK_OK)
@@ -263,11 +280,11 @@ void setup()
     portLight.type = OUT;
 
     ResourceData power;
-    power.b = false;
+    power.b = true;
     addAttribute(&resourceLight->attribute, "power", power, BOOL, &portLight);
 
     ResourceData brightness;
-    brightness.i = 0;
+    brightness.i = 255;
     addAttribute(&resourceLight->attribute, "brightness", brightness, INT, &portLight);
 
     printResource(resourceLight);
@@ -275,7 +292,7 @@ void setup()
     OIC_LOG(DEBUG, TAG, "Finished setup");
 }
 
-// The loop function is called in an endless loop
+// The loop function is caplled in an endless loop
 void loop()
 {
     // This artificial delay is kept here to avoid endless spinning

@@ -70,12 +70,6 @@ void CANFCSetPacketReceiveCallback(CANFCPacketReceivedCallback callback)
 CAResult_t SetCreateNdefMessageCallbackfromNative(JNIEnv* env)
 {
     OIC_LOG(DEBUG, TAG, "SetCreateNdefMessageCallbackfromNative IN");
-
-    VERIFY_NON_NULL(env, TAG, "env");
-    VERIFY_NON_NULL(g_context, TAG, "g_context");
-    VERIFY_NON_NULL(g_activity, TAG, "g_activity");
-    VERIFY_NON_NULL(g_nfcInterface, TAG, "g_nfcInterface");
-
     jclass cid_NfcAdapter = (*env)->FindClass(env, "android/nfc/NfcAdapter");
     if (!cid_NfcAdapter)
     {
@@ -128,9 +122,17 @@ CAResult_t CANfcCreateJniInterfaceObject()
 {
     OIC_LOG(DEBUG, TAG, "CANfcCreateJniInterfaceObject IN");
 
-    VERIFY_NON_NULL(g_activity, TAG, "g_activity");
-    VERIFY_NON_NULL(g_context, TAG, "g_context");
-    VERIFY_NON_NULL(g_jvm, TAG, "g_jvm");
+    if (!g_context)
+    {
+        OIC_LOG(ERROR, TAG, "g_context is null");
+        return CA_STATUS_FAILED;
+    }
+
+    if (!g_jvm)
+    {
+        OIC_LOG(ERROR, TAG, "g_jvm is null");
+        return CA_STATUS_FAILED;
+    }
 
     bool isAttached = false;
     JNIEnv* env;
@@ -414,8 +416,6 @@ Java_org_iotivity_ca_CaNfcInterface_caNativeNfcInvokeBeam(JNIEnv *env, jobject o
     OIC_LOG(DEBUG, TAG, "cANativeNfcInvokeBeam : IN");
     VERIFY_NON_NULL_RET(env, TAG, "env is null", false);
     VERIFY_NON_NULL_RET(obj, TAG, "obj is null", false);
-    VERIFY_NON_NULL_RET(g_context, TAG, "g_context is null", false);
-    VERIFY_NON_NULL_RET(g_activity, TAG, "g_activity is null", false);
 
     jclass cid_NfcAdapter = (*env)->FindClass(env, "android/nfc/NfcAdapter");
     if (!cid_NfcAdapter)
@@ -516,8 +516,6 @@ CAResult_t CANfcSendDataImpl(const CAEndpoint_t * ep, const char* data, uint32_t
 {
     VERIFY_NON_NULL(ep, TAG, "CANfcSendDataImpl : endpoint is null");
     VERIFY_NON_NULL(data, TAG, "CANfcSendDataImpl : data is null");
-    VERIFY_NON_NULL(g_jvm, TAG, "CANfcSendDataImpl : g_jvm is null");
-
     OIC_LOG(INFO, TAG, "CANfcSendDataImpl moved env outside");
     bool isAttached = false;
     JNIEnv* env;
