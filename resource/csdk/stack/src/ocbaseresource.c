@@ -16,19 +16,149 @@
 /*********** CONSTANT VARIABLES ****************/
 static const int URI_MAXSIZE = 19;
 static const int MAX_NUM_OF_RESOURCES = 10;
-
-
-/*********** GLOBAL VARIABLES ******************/
-static int gCurrLightInstance = 0;
-static int gCurrButtonInstance = 0;
+static const int MAXIMUM_OBSERVERS = 2;
 
 /*********** PRIVATE VARIABLES ****************/
 static OCBaseResourceT *m_resourceList = NULL;
 static int numOfResources = 0;
+static int numOfObservers = 0;
 
 /*********************** REVISED VERSION 1.1 **************************/
 
-OCEntityHandlerResult OCEntityHandlerCbNew(OCEntityHandlerFlag flag, OCEntityHandlerRequest * entityHandlerRequest,
+/**********************************************************************/
+/* PRIVATE FUCNTIONS
+/**********************************************************************/
+
+/**
+  * @brief Entity handler handling all incoming requests
+  *
+  * @param flag Entityhandler   flag (Request or Observer)
+  * @param entityHandlerRequest contains the payload and other data types
+  * @param callbackParam        The requested resource
+  *
+  * @return The result of the resource request handling.
+  */
+OCEntityHandlerResult OCEntityHandlerCb(OCEntityHandlerFlag flag, OCEntityHandlerRequest * entityHandlerRequest,
+                            void *callbackParam);
+/**
+ * @brief printResourceData
+ *
+ * @param resource
+ */
+void printResourceData(OCBaseResourceT *resource);
+
+/**
+ * @brief printAttributes Print a list of the attributes
+ *
+ * @param attributes    Linked list of attributes
+ */
+void printAttributes(OCAttributeT *attributes);
+
+/**
+ * @brief Create and loads the payload
+ *
+ * @return the created payload
+ */
+OCRepPayload *getPayload(OCEntityHandlerRequest *ehRequest, OCBaseResourceT *resource);
+
+ /**
+  * @brief handles the response to the entity handler
+  *
+  * @param response   The entityhandler response
+  * @param EntityHandlerRequest
+  * @param resource   The base resource attributes
+  *
+  * @parma result of the entityhandler;
+  */
+OCEntityHandlerResult responseHandler(OCEntityHandlerResponse *response, OCEntityHandlerRequest *entityHandlerRequest, OCRepPayload *payload, OCEntityHandlerResult ehResult);
+
+ /**
+  * @brief Handles what request was instantiated and the corrensponding action
+  *
+  * @param handler  The EntityHandler
+  * @param resource   Base resource
+  *
+  * @return the result of the request
+  */
+OCEntityHandlerResult requestHandler(OCEntityHandlerRequest *ehRequest,
+                                      OCBaseResourceT *resource, OCRepPayload **payload);
+
+/**
+ * @brief observerHandler
+ *
+ * @param ehRequest     Request information from the client
+ * @param resource      Pointer to the request resource
+ */
+OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseResourceT *resource);
+
+/**
+ * @brief Called when a REST GET is request
+ *
+ * @param OCBaseResource base resource attributes
+ *
+ * @return result of the entityHandler
+ */
+ OCEntityHandlerResult getRequest(OCBaseResourceT *resource, OCRepPayload *payload);
+
+ /**
+ * @brief Called when a REST PUT is request
+ *
+ * @param OCBaseResource base resource attributes
+ *
+ * @return result of the entityHandler
+ */
+ OCEntityHandlerResult putRequest(OCEntityHandlerRequest *ehRequest, OCRepPayload* payload, OCBaseResourceT *resource);
+
+
+ /**
+  * @brief postRequest Called when a RESTful POST request is called
+  *
+  * @param ehRequest    Request parameters
+  * @param payload      Payload from the client
+  * @param resource     Resource the call was refered to
+  * @return
+  */
+ OCEntityHandlerResult postRequest(OCEntityHandlerRequest *ehRequest, OCRepPayload* payload, OCBaseResourceT *resource);
+
+ /**
+   * @brief Search for a resource in the resource list
+   *
+   * @param handle     Handle of the resource
+   *
+   * @return true if found
+   */
+ bool findResource(OCResourceHandle handle);
+
+
+ /**
+  * @brief Returns the result of a OCStackResult as a string
+  *
+  * @param OCStackResult The result to be converted to a string
+  *
+  * @return A string with the result
+ */
+ const char * getOCStackResult(OCStackResult result);
+
+/**
+  * @bŕief Prints an error message
+  */
+ void printNoMemoryMsg();
+
+
+/**********************************************************************/
+/* Functions
+/**********************************************************************/
+
+ /**
+  * @brief Returns a string corrensponding to the request
+  *
+  * @param The entity handler request
+  *
+  * @return the string of the request
+  */
+ const char * getEntityHandlerRequestResult(OCEntityHandlerRequest *entityHandler);
+
+OCEntityHandlerResult OCEntityHandlerCb(OCEntityHandlerFlag flag, OCEntityHandlerRequest * entityHandlerRequest,
                             void *callbackParam)
 {
     OCEntityHandlerResult ehResult = OC_EH_OK;
@@ -114,18 +244,16 @@ OCBaseResourceT * createResource(char* uri, OCResourceType* type, OCResourceInte
     OIC_LOG_V(DEBUG, TAG, "Creating resource with uri: %s\n", uri);
 
     OCBaseResourceT *resource = (OCBaseResourceT*)malloc(sizeof(OCBaseResourceT));
-
-    if(!resource)
-    {
-        OIC_LOG(ERROR, TAG, "Unable to allocate memory for resource");
-    }
+    if(resource == NULL) {printNoMemoryMsg(); return NULL;}
 
     resource->uri = uri;
 
     resource->type = (OCResourceType*)malloc(sizeof(OCResourceType));
+    if(resource->type == NULL) {printNoMemoryMsg(); return NULL;}
     memcpy(resource->type, type, sizeof(OCResourceType));
 
     resource->interface = (OCResourceInterface*)malloc(sizeof(OCResourceInterface));
+    if(resource->interface == NULL) {printNoMemoryMsg(); return NULL;}
     memcpy(resource->interface, interface, sizeof(OCResourceInterface));
 
     resource->resourceProperties = properties;
@@ -140,7 +268,7 @@ OCBaseResourceT * createResource(char* uri, OCResourceType* type, OCResourceInte
             resource->type->resourcetypename,
             resource->interface->name,
             resource->uri,
-            OCEntityHandlerCbNew,
+            OCEntityHandlerCb,
             resource,
             resource->resourceProperties);
     OIC_LOG_V(DEBUG, TAG, "Created resource with OCStackResult: %s", res);
@@ -231,11 +359,12 @@ OCStackResult addType(OCBaseResourceT *resource, OCResourceType *type)
         current = current->next;
     }
     current->next = (OCResourceType*)malloc(sizeof(OCResourceType));
+    if(current->next == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
     memcpy(current->next, type, sizeof(OCResourceType));
 
     OCStackResult result = OCBindResourceTypeToResource(resource->handle, type->resourcetypename);
 
-    OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
+    //OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
     OIC_LOG_V(INFO, TAG, "Type added: %s", type->resourcetypename);
 
     free(type);
@@ -254,11 +383,7 @@ OCStackResult addType(OCBaseResourceT *resource, OCResourceType *type)
 OCStackResult addType(OCBaseResourceT *resource, const char *typeName)
 {
     OCResourceType *type = (OCResourceType*)malloc(sizeof(OCBaseResourceT));
-
-    if(!type)
-    {
-        return OC_STACK_NO_MEMORY;
-    }
+    if(type == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
 
     type->resourcetypename = (char*) typeName;
     type->next = NULL;
@@ -285,11 +410,12 @@ OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *inter
     }
 
     current->next = (OCResourceInterface*)malloc(sizeof(OCResourceInterface));
+    if(current->next == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
     memcpy(current->next, interface, sizeof(OCResourceInterface));
 
     OCStackResult result = OCBindResourceInterfaceToResource(resource->handle, interface->name);
 
-    OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
+    //OIC_LOG_V(INFO, TAG, "Result of type binding: %s", getOCStackResult(result));
     OIC_LOG_V(INFO, TAG, "Interface added: %s", interface->name);
 
 
@@ -309,10 +435,7 @@ OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *inter
 OCStackResult addInterface(OCBaseResourceT *resource, const char *interfaceName)
 {
     OCResourceInterface *interface = (OCResourceInterface*)malloc(sizeof(OCResourceInterface));
-    if(!interface)
-    {
-        return OC_STACK_NO_MEMORY;
-    }
+    if(interface == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
 
     interface->name = (char*) interfaceName;
     interface->next = NULL;
@@ -326,11 +449,12 @@ OCStackResult addInterface(OCBaseResourceT *resource, const char *interfaceName)
  * @param resource      The resource to add an attribute to
  * @param attribute     The attribute to be added
  */
-void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
+OCStackResult addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
 {
     // Create new node and assign it a memory address
     OCAttributeT *new_node = (OCAttributeT*)calloc(1, sizeof(OCAttributeT));
     new_node->value.data.str = (char*)malloc(sizeof(attribute->value.data.str));
+    if(new_node->value.data.str == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
 
     if(*head == NULL)
     {
@@ -353,6 +477,7 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
     if(port)
     {
         new_node->port = (OCIOPort*)malloc(sizeof(OCIOPort));
+        if(new_node->port == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
         memcpy(new_node->port, port, sizeof(OCIOPort));
         pinMode(new_node->port->pin, new_node->port->type);
 
@@ -361,7 +486,7 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
 
     OIC_LOG_V(DEBUG, TAG, "Added attribute with name: %s", (*head)->name);
 
-    return;
+    return OC_STACK_OK;
 }
 
 /**
@@ -372,9 +497,10 @@ void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port)
  * @param value         Value of the attribute
  * @param type          DataTypes type of the attribute
  */
-void addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType type, OCIOPort *port)
+OCStackResult addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType type, OCIOPort *port)
 {
     OCAttributeT *attribute = (OCAttributeT*)malloc(sizeof(OCAttributeT));
+    if(attribute == NULL) {printNoMemoryMsg(); return OC_STACK_NO_MEMORY;}
 
     attribute->port = port;
     attribute->name = name;
@@ -382,9 +508,10 @@ void addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType 
     attribute->value.data = value;
     attribute->next = NULL;
 
-    addAttribute(head, attribute, port);
+    OCStackResult result = addAttribute(head, attribute, port);
 
     free(attribute);
+    return result;
 }
 
 /**
@@ -601,7 +728,7 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
     else if(OC_OBSERVE_DEREGISTER == ehRequest->obsInfo.action)
     {
         OIC_LOG(INFO, TAG, "Received OC_OBSERVER_DEREGISTER from client");
-        resource->underObservation = false;
+        //resource->underObservation = false;
     }
     else
     {
@@ -744,16 +871,39 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
   */
  OCEntityHandlerResult postRequest(OCEntityHandlerRequest *ehRequest, OCRepPayload* payload, OCBaseResourceT *resource)
  {
-     /*if(!(resource->handle))
+     // See if the esource exist
+     if(findResource(resource->handle))
      {
-         // TODO: Create new resource
-         OIC_LOG(DEBUG, TAG, "Creating new resource...");
+        // Standard put request
+        return(putRequest(ehRequest, payload, resource));
+     }
+     else
+     {
+        OIC_LOG(DEBUG, TAG, "Creating new resource");
 
-         return OC_EH_OK;
-     }*/
+        return OC_EH_OK;
+     }
+ }
 
-     // Standard put request
-     return(putRequest(ehRequest, payload, resource));
+  /**
+   * @brief Search for a resource in the resource list
+   *
+   * @param handle     Handle of the resource
+   *
+   * @return true if found
+   */
+ bool findResource(OCResourceHandle handle)
+ {
+    OCBaseResourceT *current = m_resourceList;
+    while(current != NULL)
+    {
+      if(handle == current->handle)
+      {
+        return true;
+      }
+      current = current->next;
+    }
+    return false;
  }
 
 /**
@@ -763,6 +913,7 @@ OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseR
  *
  * @return A string with the result
 */
+ /*
 const char * getOCStackResult(OCStackResult result)
 {
    switch (result) {
@@ -801,7 +952,7 @@ const char * getOCStackResult(OCStackResult result)
     default:
         return "UNKNOWN";
     }
-}
+}*/
 
 /**
  * @brief Returns a string corrensponding to the request
@@ -836,6 +987,14 @@ const char * getEntityHandlerRequestResult(OCEntityHandlerRequest *entityHandler
             return "OC_ENTITY_HANDLER_UKNOWN";
     }
 }
+
+/**
+  * @bŕief Prints an no memory error message
+  */
+ void printNoMemoryMsg()
+ {
+ 	OIC_LOG(ERROR, LOG, "No Memory");
+ }
 
 
 

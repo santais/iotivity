@@ -49,8 +49,16 @@
 //#include <vector>
 
 
-//typedef std::vector<OCObservationId> ObservationIds;
-
+/****************** MACRO *********************/
+static inline bool VERIFY_MEMORY_ALLOCATION(void* object)
+{
+  if(object == NULL)
+  {
+    OIC_LOG(ERROR, TAG, "No memory!");
+    return false;
+  }
+  return true;
+}
 /**
  * Handle to an OC Resource
  */
@@ -228,7 +236,7 @@ OCStackResult addType(OCBaseResourceT *resource, const char *typeName);
  * @return              OC_STACK_OK if successfully bound
  */
 OCStackResult addInterface(OCBaseResourceT *resource, OCResourceInterface *interface);
-OCStackResult addInterface(OCBaseResourceT *resource, char* interfaceName);
+OCStackResult addInterface(OCBaseResourceT *resource, const char* interfaceName);
 
 /**
  * @brief addAttribute  Adds an attribute to the resource
@@ -236,8 +244,8 @@ OCStackResult addInterface(OCBaseResourceT *resource, char* interfaceName);
  * @param resource      The resource to add an attribute to
  * @param attribute     The attribute to be added
  */
-void addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port);
-void addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType type,
+OCStackResult addAttribute(OCAttributeT **head, OCAttributeT *attribute, OCIOPort *port);
+OCStackResult addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType type,
                   OCIOPort *port);
 
 /**
@@ -247,105 +255,6 @@ void addAttribute(OCAttributeT **head, char *name, ResourceData value, DataType 
  */
 OCBaseResourceT * getResourceList();
 
-
-/**
- * @brief printResourceData
- *
- * @param resource
- */
-void printResourceData(OCBaseResourceT *resource);
-
-/**
- * @brief printAttributes Print a list of the attributes
- *
- * @param attributes    Linked list of attributes
- */
-void printAttributes(OCAttributeT *attributes);
-
-/**
- * @brief Create and loads the payload
- *
- * @return the created payload
- */
-OCRepPayload *getPayload(OCEntityHandlerRequest *ehRequest, OCBaseResourceT *resource);
-
- /**
-  * @brief handles the response to the entity handler
-  *
-  * @param response   The entityhandler response
-  * @param EntityHandlerRequest
-  * @param resource   The base resource attributes
-  *
-  * @parma result of the entityhandler;
-  */
-OCEntityHandlerResult responseHandler(OCEntityHandlerResponse *response, OCEntityHandlerRequest *entityHandlerRequest, OCRepPayload *payload, OCEntityHandlerResult ehResult);
-
- /**
-  * @brief Handles what request was instantiated and the corrensponding action
-  *
-  * @param handler  The EntityHandler
-  * @param resource   Base resource
-  *
-  * @return the result of the request
-  */
-OCEntityHandlerResult requestHandler(OCEntityHandlerRequest *ehRequest,
-                                      OCBaseResourceT *resource, OCRepPayload **payload);
-
-/**
- * @brief observerHandler
- *
- * @param ehRequest     Request information from the client
- * @param resource      Pointer to the request resource
- */
-OCEntityHandlerResult observerHandler(OCEntityHandlerRequest *ehRequest, OCBaseResourceT *resource);
-
-/**
- * @brief Called when a REST GET is request
- *
- * @param OCBaseResource base resource attributes
- *
- * @return result of the entityHandler
- */
- OCEntityHandlerResult getRequest(OCBaseResourceT *resource, OCRepPayload *payload);
-
- /**
- * @brief Called when a REST PUT is request
- *
- * @param OCBaseResource base resource attributes
- *
- * @return result of the entityHandler
- */
- OCEntityHandlerResult putRequest(OCEntityHandlerRequest *ehRequest, OCRepPayload* payload, OCBaseResourceT *resource);
-
-
- /**
-  * @brief postRequest Called when a RESTful POST request is called
-  *
-  * @param ehRequest    Request parameters
-  * @param payload      Payload from the client
-  * @param resource     Resource the call was refered to
-  * @return
-  */
- OCEntityHandlerResult postRequest(OCEntityHandlerRequest *ehRequest, OCRepPayload* payload, OCBaseResourceT *resource);
-
-
- /**
-  * @brief Returns the result of a OCStackResult as a string
-  *
-  * @param OCStackResult The result to be converted to a string
-  *
-  * @return A string with the result
- */
- const char * getOCStackResult(OCStackResult result);
-
- /**
-  * @brief Returns a string corrensponding to the request
-  *
-  * @param The entity handler request
-  *
-  * @return the string of the request
-  */
- const char * getEntityHandlerRequestResult(OCEntityHandlerRequest *entityHandler);
 
 #endif /* _OCBASERESOURCE_H */
 
