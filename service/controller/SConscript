@@ -105,7 +105,10 @@ if target_os == 'android':
 ####################################################################
 # Source files and Targets
 ######################################################################
-controller_src = 'src/Controller.cpp'
+controller_src = [
+	'src/Controller.cpp',
+	'src/ResourceObject.cpp'
+	]
 
 Controller_Static = controller_env.StaticLibrary('controller', controller_src)
 Controller_Shared = controller_env.SharedLibrary('controller', controller_src)

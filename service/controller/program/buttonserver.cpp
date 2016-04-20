@@ -186,7 +186,7 @@ private:
 // Entity handler can be implemented in several ways by the manufacturer
     OCEntityHandlerResult entityHandler(std::shared_ptr< OCResourceRequest > request)
     {
-        //cout << "\tIn Server CPP entity handler:\n";
+        cout << "\tIn Server CPP entity handler:\n";
         OCEntityHandlerResult ehResult = OC_EH_ERROR;
         if (request)
         {
@@ -272,13 +272,13 @@ private:
             }
             if (requestFlag & RequestHandlerFlag::ObserverFlag)
             {
+		cout << "\t\trequestFlag : Observer\n";
                 ObservationInfo observationInfo = request->getObservationInfo();
                 if(ObserveAction::ObserveRegister == observationInfo.action)
                 {
 		    std::cout << "Setting observer state true" << std::endl;
                     gUnderObservation = true;
                 }
-                cout << "\t\trequestFlag : Observer\n";
             }
         }
         else
@@ -378,7 +378,7 @@ int main()
 
         while(OCProcess() == OC_STACK_OK)
         {
-            int c = getchar();
+            /*int c = getchar();
 
             if(c == 'y')
             {
@@ -391,7 +391,7 @@ int main()
                 myButton.m_state = false;
                 std::cout << "N pressed" << std::endl;
                 OCPlatform::notifyAllObservers(myButton.m_resourceHandle);
-            }
+            }*/
             sleep(0.5);
         }
     }
